@@ -7,10 +7,10 @@ import (
 )
 
 //给字符串生成md5
-//@params password 需要加密的字符串
-//@params salt  加密的盐
+//@params password String类型 需要加密的字符串
+//@params salt int类型 加密的盐
 //@return md5str 返回md5码
-func Md5Util(password string, salt int) (CryptStr string) {
+func Md5Util(password string, salt int) string {
 
 	//将salt转为字符串
 	s := fmt.Sprintf("%v", salt)
