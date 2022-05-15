@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"douyin/models"
+	"douyin/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"sync/atomic"
@@ -10,9 +12,9 @@ import (
 // user data will be cleared every time the server starts
 // test data: username=zhanglei, password=douyin
 var usersLoginInfo = map[string]User{
-	"zhangleidouyin": {
+	"root123456": {
 		Id:            1,
-		Name:          "zhanglei",
+		Name:          "root",
 		FollowCount:   10,
 		FollowerCount: 5,
 		IsFollow:      true,
@@ -57,24 +59,45 @@ func Register(c *gin.Context) {
 	}
 }
 
+// Login 登录接口
+// username: 用户名  password:密码
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-
+	//token部分暂时未完成
 	token := username + password
-
-	if user, exist := usersLoginInfo[token]; exist {
+	//登录验证失败
+	//返回：msg:user does not exist | password error
+	if user, err := services.GetUserService(models.GetDB()).UserLogin(username, password); err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0},
+			Response: Response{StatusCode: 1, StatusMsg: err.Error()},
+		})
+	} else {
+		//登陆成功
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 0, StatusMsg: "login success"},
 			UserId:   user.Id,
 			Token:    token,
 		})
-	} else {
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
-		})
 	}
 }
+
+//func Login(c *gin.Context) {
+//	username := c.Query("username")
+//	password := c.Query("password")
+//	token := username + password
+//	if user, exist := usersLoginInfo[token]; exist {
+//		c.JSON(http.StatusOK, UserLoginResponse{
+//			Response: Response{StatusCode: 0},
+//			UserId:   user.Id,
+//			Token:    token,
+//		})
+//	} else {
+//		c.JSON(http.StatusOK, UserLoginResponse{
+//			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
+//		})
+//	}
+//}
 
 func UserInfo(c *gin.Context) {
 	token := c.Query("token")
