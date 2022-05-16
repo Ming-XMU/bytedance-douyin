@@ -3,22 +3,38 @@ package daos
 import (
 	"douyin/models"
 	"errors"
+	"github.com/gomodule/redigo/redis"
 	"gorm.io/gorm"
+	"sync"
 )
 
-func GetUserDao(db *gorm.DB) *UserDao {
-	return &UserDao{
-		db: db,
-	}
+var (
+	userDao     UserDao
+	userDaoOnce sync.Once
+)
+
+type UserDao interface {
+	AddUser(user *models.User) error
+	FindByName(name string) (*models.User, error)
+}
+type UserDaoImpl struct {
+	db *gorm.DB
+	rec redis.Conn
 }
 
-type UserDao struct {
-	db *gorm.DB
+func GetUserDao() UserDao {
+	userDaoOnce.Do(func() {
+		userDao = &UserDaoImpl{
+			db: models.GetDB(),
+			rec: models.GetRec(),
+		}
+	})
+	return userDao
 }
 
 // AddUser 添加用户
 // 参数 user User结构体指针
-func (u *UserDao) AddUser(user *models.User) error {
+func (u *UserDaoImpl) AddUser(user *models.User) error {
 	if err := u.db.Create(user).Error; err != nil {
 		return err
 	}
@@ -27,7 +43,7 @@ func (u *UserDao) AddUser(user *models.User) error {
 
 // FindByName 根据用户名查找用户
 // 参数 name string类型 用户名
-func (u *UserDao) FindByName(name string) (*models.User, error) {
+func (u *UserDaoImpl) FindByName(name string) (*models.User, error) {
 	var user models.User
 	if err := u.db.Where("name = ?", name).First(&user).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err

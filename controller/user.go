@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"douyin/models"
 	"douyin/services"
 	"douyin/tools"
 	"github.com/gin-gonic/gin"
@@ -44,7 +43,7 @@ func Register(c *gin.Context) {
 	//密码MD5加密
 	password := tools.Md5Util(c.Query("password"), salt)
 	token := username + password
-	if err := services.GetUserService(models.GetDB()).UserRegist(username, password, userIdSequence, salt); err != nil {
+	if err := services.GetUserService().UserRegist(username, password, userIdSequence, salt); err != nil {
 		//注册失败返回错误信息
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: err.Error()},
@@ -96,7 +95,7 @@ func Login(c *gin.Context) {
 	token := username + password
 	//登录验证失败
 	//返回：msg:user does not exist | password error
-	if user, err := services.GetUserService(models.GetDB()).UserLogin(username, password); err != nil {
+	if user, err := services.GetUserService().UserLogin(username, password); err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: err.Error()},
 		})

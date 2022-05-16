@@ -14,7 +14,6 @@ import (
 //@params password String类型 需要加密的字符串
 //@params salt int类型 加密的盐
 //@return md5str 返回md5码
-//salt改成string类型好一点？数据库的salt字段是varchar
 func Md5Util(password string, salt string) string {
 	//拼接字符串
 	//定义Buffer类型

@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 )
-
 var (
 	MysqlPath string
+	RedisUrl  string
 )
 
 // Init
@@ -20,7 +20,9 @@ func Init() {
 		return
 	}
 	LoadMysql(file)
+	LoadRedis(file)
 	models.InitDB(MysqlPath)
+	models.InitRedis(RedisUrl)
 }
 
 // LoadMysql
@@ -32,4 +34,12 @@ func LoadMysql(file *ini.File) {
 	DbPassword := file.Section("mysql").Key("DbPassword").String()
 	DbName := file.Section("mysql").Key("DbName").String()
 	MysqlPath = strings.Join([]string{DbUser, ":", DbPassword, "@tcp(", DbHost, ":", DbPort, ")/", DbName}, "")
+}
+
+// LoadRedis
+// 读取配置拼接Redis连接路径
+func LoadRedis(file *ini.File) {
+	Host := file.Section("redis").Key("Host").String()
+	Port := file.Section("redis").Key("Port").String()
+	RedisUrl = strings.Join([]string{"redis://", Host, ":", Port}, "")
 }

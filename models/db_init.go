@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-var DB *gorm.DB
+var db *gorm.DB
 
 func GetDB() *gorm.DB {
-	return DB
+	return db
 }
 
 func InitDB(con string) {
-	db, err := gorm.Open(mysql.New(mysql.Config{
+	open, err := gorm.Open(mysql.New(mysql.Config{
 		DSN:                       con,   // DSN data source name
 		DefaultStringSize:         256,   // string 类型字段的默认长度
 		DisableDatetimePrecision:  true,  // 禁用 datetime 精度，MySQL 5.6 之前的数据库不支持
@@ -25,7 +25,7 @@ func InitDB(con string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	sqlDB, err := db.DB()
+	sqlDB, err := open.DB()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -35,5 +35,5 @@ func InitDB(con string) {
 	sqlDB.SetMaxOpenConns(100)
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
 	sqlDB.SetConnMaxLifetime(time.Hour)
-	DB = db
+	db = open
 }
