@@ -3,6 +3,7 @@ package controller
 import (
 	"douyin/models"
 	"douyin/services"
+	"douyin/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"sync/atomic"
@@ -34,30 +35,56 @@ type UserResponse struct {
 	User User `json:"user"`
 }
 
+//注册功能
+//失败返回错误信息
 func Register(c *gin.Context) {
+	//随机生成salt
+	salt := tools.RandomStringUtil()
 	username := c.Query("username")
-	password := c.Query("password")
-
+	//密码MD5加密
+	password := tools.Md5Util(c.Query("password"), salt)
 	token := username + password
-
-	if _, exist := usersLoginInfo[token]; exist {
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
-		})
+	atomic.AddInt64(&userIdSequence, 1)
+	if _, err := services.GetUserService(models.GetDB()).UserRegist(username, password, userIdSequence, salt); err != nil {
+		//注册失败返回错误信息
+		c.JSON(http.StatusOK, err.Error())
 	} else {
-		atomic.AddInt64(&userIdSequence, 1)
-		newUser := User{
-			Id:   userIdSequence,
-			Name: username,
-		}
-		usersLoginInfo[token] = newUser
+		//成功注册
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0},
+			Response: Response{StatusCode: 0, StatusMsg: "regist success"},
 			UserId:   userIdSequence,
-			Token:    username + password,
+			Token:    token,
 		})
 	}
+
 }
+
+//用户注册demo
+
+//func Register(c *gin.Context) {
+//	username := c.Query("username")
+//	password := c.Query("password")
+//
+//	token := username + password
+//
+//	if _, exist := usersLoginInfo[token]; exist {
+//		c.JSON(http.StatusOK, UserLoginResponse{
+//			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
+//		})
+//	} else {
+//		atomic.AddInt64(&userIdSequence, 1)
+//		newUser := User{
+//			Id:   userIdSequence,
+//			Name: username,
+//		}
+//		usersLoginInfo[token] = newUser
+//		c.JSON(http.StatusOK, UserLoginResponse{
+//			Response: Response{StatusCode: 0},
+//			UserId:   userIdSequence,
+//			Token:    username + password,
+//		})
+//	}
+//}
 
 // Login 登录接口
 // username: 用户名  password:密码
