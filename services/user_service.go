@@ -17,6 +17,7 @@ var (
 type UserService interface {
 	UserLogin(username string, password string) (*models.User, error)
 	UserRegist(username string, password string, userId int64, salt string) error
+	FindLastUserId() int64
 }
 type UserServiceImpl struct {
 	userDao daos.UserDao
@@ -71,4 +72,9 @@ func (u *UserServiceImpl) UserRegist(username string, password string, userId in
 		return errors.New("user regist failed")
 	}
 	return nil
+}
+
+//返回当前最大的用户ID
+func (u *UserServiceImpl) FindLastUserId() int64 {
+	return u.userDao.LastId()
 }

@@ -16,16 +16,17 @@ var (
 type UserDao interface {
 	AddUser(user *models.User) error
 	FindByName(name string) (*models.User, error)
+	LastId() int64
 }
 type UserDaoImpl struct {
-	db *gorm.DB
+	db  *gorm.DB
 	rec redis.Conn
 }
 
 func GetUserDao() UserDao {
 	userDaoOnce.Do(func() {
 		userDao = &UserDaoImpl{
-			db: models.GetDB(),
+			db:  models.GetDB(),
 			rec: models.GetRec(),
 		}
 	})
@@ -49,4 +50,15 @@ func (u *UserDaoImpl) FindByName(name string) (*models.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+//通过主键查询最后一条记录
+//返回当前表内的最大ID
+func (u *UserDaoImpl) LastId() int64 {
+	var user models.User
+	if err := u.db.Last(&user).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		//表内没有数据默认为1
+		return 1
+	}
+	return user.Id
 }

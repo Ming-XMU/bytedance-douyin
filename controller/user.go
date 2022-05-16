@@ -21,7 +21,7 @@ var usersLoginInfo = map[string]User{
 	},
 }
 
-var userIdSequence = int64(1)
+var userIdSequence int64
 
 type UserLoginResponse struct {
 	Response
@@ -43,6 +43,9 @@ func Register(c *gin.Context) {
 	//密码MD5加密
 	password := tools.Md5Util(c.Query("password"), salt)
 	token := username + password
+	//更新用户ID
+	userIdSequence = services.GetUserService().FindLastUserId()
+	//注册用户
 	if err := services.GetUserService().UserRegist(username, password, userIdSequence, salt); err != nil {
 		//注册失败返回错误信息
 		c.JSON(http.StatusOK, UserLoginResponse{
@@ -57,7 +60,6 @@ func Register(c *gin.Context) {
 			Token:    token,
 		})
 	}
-
 }
 
 //用户注册demo
