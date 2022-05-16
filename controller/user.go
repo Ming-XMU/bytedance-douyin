@@ -44,12 +44,14 @@ func Register(c *gin.Context) {
 	//密码MD5加密
 	password := tools.Md5Util(c.Query("password"), salt)
 	token := username + password
-	atomic.AddInt64(&userIdSequence, 1)
-	if _, err := services.GetUserService(models.GetDB()).UserRegist(username, password, userIdSequence, salt); err != nil {
+	if err := services.GetUserService(models.GetDB()).UserRegist(username, password, userIdSequence, salt); err != nil {
 		//注册失败返回错误信息
-		c.JSON(http.StatusOK, err.Error())
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 1, StatusMsg: err.Error()},
+		})
 	} else {
 		//成功注册
+		atomic.AddInt64(&userIdSequence, 1)
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "regist success"},
 			UserId:   userIdSequence,
@@ -60,7 +62,6 @@ func Register(c *gin.Context) {
 }
 
 //用户注册demo
-
 //func Register(c *gin.Context) {
 //	username := c.Query("username")
 //	password := c.Query("password")
