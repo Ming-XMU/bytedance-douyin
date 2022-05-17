@@ -3,8 +3,10 @@ package controller
 import (
 	"douyin/services"
 	"douyin/tools"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 )
 
@@ -128,17 +130,34 @@ func Login(c *gin.Context) {
 //	}
 //}
 
+//@author cwh
+//根据id获取用户信息
+//缺失token验证
+//缺失是否关注的查询
 func UserInfo(c *gin.Context) {
-	token := c.Query("token")
-
-	if user, exist := usersLoginInfo[token]; exist {
+	id, parse := strconv.Atoi(c.Query("user_id"))
+	if parse != nil {
+		fmt.Println("??")
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 0},
-			User:     user,
+			Response: Response{StatusCode: 0, StatusMsg: "参数类型错误！"},
+		})
+		return
+	}
+	if user, err := services.GetUserService().UserInfo(id); err != nil {
+		c.JSON(http.StatusOK, UserResponse{
+			Response: Response{StatusCode: 1, StatusMsg: err.Error()},
 		})
 	} else {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
+			Response: Response{StatusCode: 0, StatusMsg: "获取用户信息成功！"},
+			User: User{
+				Id:            user.Id,
+				Name:          user.Name,
+				FollowCount:   user.FollowCount,
+				FollowerCount: user.FollowerCount,
+				IsFollow:      false,
+			},
 		})
 	}
+
 }

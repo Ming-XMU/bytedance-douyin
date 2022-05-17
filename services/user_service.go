@@ -17,6 +17,7 @@ var (
 type UserService interface {
 	UserLogin(username string, password string) (*models.User, error)
 	UserRegist(username string, password string, userId int64, salt string) error
+	UserInfo(id int) (*models.User, error)
 	FindLastUserId() int64
 }
 type UserServiceImpl struct {
@@ -77,4 +78,14 @@ func (u *UserServiceImpl) UserRegist(username string, password string, userId in
 //返回当前最大的用户ID
 func (u *UserServiceImpl) FindLastUserId() int64 {
 	return u.userDao.LastId()
+}
+
+//@author cwh
+//根据id查询对应的对象
+func (u *UserServiceImpl) UserInfo(userId int) (*models.User, error) {
+	user, err := u.userDao.FindById(userId)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

@@ -1,14 +1,6 @@
 package test
 
-import (
-	"douyin/services"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"log"
-	"testing"
-)
-
-func TestTopicPublishInfo(t *testing.T) {
+/*func TestTopicPublishInfo(t *testing.T) {
 	dsn := "root:123456@tcp(127.0.0.1:3306)/douyin"
 	db, err := gorm.Open(mysql.Open(dsn))
 	if err != nil {
@@ -21,4 +13,4 @@ func TestTopicPublishInfo(t *testing.T) {
 		log.Panicln(err)
 	}
 
-}
+}*/
