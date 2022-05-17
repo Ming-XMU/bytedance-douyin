@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 var(
-	feeSerivce = services.GetVideoService()
+	FeeSerivce services.FeedService
 )
 type VideoListResponse struct {
 	Response
@@ -15,7 +15,7 @@ type VideoListResponse struct {
 
 // Publish check token then save upload file to public directory
 func Publish(c *gin.Context) {
-	err := feeSerivce.PublishAction(c)
+	err := FeeSerivce.PublishAction(c)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
