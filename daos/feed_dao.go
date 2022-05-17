@@ -2,7 +2,6 @@ package daos
 
 import (
 	"douyin/models"
-	"gorm.io/gorm"
 	"sync"
 )
 
@@ -17,10 +16,9 @@ type FeedDao interface{
 	CreateFeed(video models.Video) (rowsAffected int64,err error)
 }
 type FeedDaoImpl struct{
-	db *gorm.DB
 }
 func(f *FeedDaoImpl)CreateFeed(video models.Video) (rowsAffected int64,err error){
-	result := f.db.Create(&video)
+	result := models.GetDB().Create(&video)
 	return result.RowsAffected,result.Error
 }
 
@@ -32,7 +30,6 @@ var(
 func GetFeeDao() FeedDao{
 	feeDaoOnce.Do(func() {
 		feeDao = &FeedDaoImpl{
-			db: models.GetDB(),
 		}
 	})
 	return feeDao

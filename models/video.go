@@ -24,7 +24,7 @@ type Video struct{
 	//favorite count
 	FavoriteCount int32 `gorm:"column:favorite_count"`
 	//create time
-	CreateAt time.Time `gorm:"column:create_at;autoCreateTime"`
+	CreateAt time.Time `gorm:"autoCreateTime;column:create_at"`
 }
 func(v *Video) TableName()string{
 	return VideoTableName

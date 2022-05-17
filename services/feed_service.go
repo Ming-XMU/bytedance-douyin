@@ -20,6 +20,7 @@ import "douyin/daos"
  **/
 const (
 	//TODO 绝对路径待修改
+	//producing: /root/douyin/video/  /root/douyin/img
 	Play_Url_Path  = "D:/goProject/src/simple-demo/public/video/"
 	Cover_Url_Path = "D:/goProject/src/simple-demo/public/img/"
 )
@@ -61,7 +62,9 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//Create CoverUrl
 	//cmd format :ffmpeg -i  1_mmexport1652668404330.mp4 -ss 00:00:00 -frames:v 1 out.jpg
 	coverFile := finalName + ".jpg"
-	cmd := exec.Command("ffmpeg", "-i", Play_Url_Path+finalName, "-ss", "00:00:00", "-frames:v", "1", Cover_Url_Path+coverFile)
+	playUrl := Play_Url_Path+finalName
+	coverUrl := Cover_Url_Path+coverFile
+	cmd := exec.Command("ffmpeg", "-i",playUrl , "-ss", "00:00:00", "-frames:v", "1", coverUrl)
 	err = cmd.Run()
 	if err != nil {
 		//TODO log format
@@ -78,8 +81,8 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	}
 	video := models.Video{
 		UserId:        id,
-		PlayUrl:       saveFile,
-		CoverUrl:      coverFile,
+		PlayUrl:       playUrl,
+		CoverUrl:      coverUrl,
 		CommentCount:  0,
 		FavoriteCount: 0,
 	}
@@ -88,6 +91,12 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	if err != nil {
 		//TODO log format
 		fmt.Println("create feed record failed : ", err.Error())
+		return
+	}
+	//cache
+	err = tools.RedisCacheFeed(video)
+	if err != nil{
+		fmt.Println("cache feed failed:",err.Error())
 		return
 	}
 	return
