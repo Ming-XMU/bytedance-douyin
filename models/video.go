@@ -7,10 +7,11 @@ import "time"
  * @Date: 2022/5/16 9:54
  * @Description: TODO
  **/
-var(
+var (
 	VideoTableName = "video"
 )
-type Video struct{
+
+type Video struct {
 	//primary key
 	ID int64 `gorm:"column:id";primaryKey`
 	//outer user table
@@ -20,12 +21,13 @@ type Video struct{
 	//cover url
 	CoverUrl string `gorm:"column:cover_url"`
 	//comment count
-	CommentCount int32 `gorm:"column:comment_count"`
+	CommentCount int64 `gorm:"column:comment_count"`
 	//favorite count
-	FavoriteCount int32 `gorm:"column:favorite_count"`
+	FavoriteCount int64 `gorm:"column:favorite_count"`
 	//create time
 	CreateAt time.Time `gorm:"autoCreateTime;column:create_at"`
 }
-func(v *Video) TableName()string{
+
+func (v *Video) TableName() string {
 	return VideoTableName
 }
