@@ -12,24 +12,26 @@ import (
  * @Description: TODO
  **/
 
-type FeedDao interface{
+type FeedDao interface {
 	//create feed record
-	CreateFeed(video models.Video) (rowsAffected int64,err error)
+	CreateFeed(video models.Video) (rowsAffected int64, err error)
 }
-type FeedDaoImpl struct{
+type FeedDaoImpl struct {
 	db *gorm.DB
 }
-func(f *FeedDaoImpl)CreateFeed(video models.Video) (rowsAffected int64,err error){
+
+func (f *FeedDaoImpl) CreateFeed(video models.Video) (rowsAffected int64, err error) {
 	result := f.db.Create(&video)
-	return result.RowsAffected,result.Error
+	return result.RowsAffected, result.Error
 }
 
 //single create
-var(
-	feeDao FeedDao
+var (
+	feeDao     FeedDao
 	feeDaoOnce sync.Once
 )
-func GetFeeDao() FeedDao{
+
+func GetFeeDao() FeedDao {
 	feeDaoOnce.Do(func() {
 		feeDao = &FeedDaoImpl{
 			db: models.GetDB(),

@@ -3,9 +3,12 @@ package services
 import (
 	"douyin/models"
 	"douyin/tools"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gomodule/redigo/redis"
+	"log"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -62,9 +65,9 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//Create CoverUrl
 	//cmd format :ffmpeg -i  1_mmexport1652668404330.mp4 -ss 00:00:00 -frames:v 1 out.jpg
 	coverFile := finalName + ".jpg"
-	playUrl := Play_Url_Path+finalName
-	coverUrl := Cover_Url_Path+coverFile
-	cmd := exec.Command("ffmpeg", "-i",playUrl , "-ss", "00:00:00", "-frames:v", "1", coverUrl)
+	playUrl := Play_Url_Path + finalName
+	coverUrl := Cover_Url_Path + coverFile
+	cmd := exec.Command("ffmpeg", "-i", playUrl, "-ss", "00:00:00", "-frames:v", "1", coverUrl)
 	err = cmd.Run()
 	if err != nil {
 		//TODO log format
@@ -95,8 +98,8 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	}
 	//cache
 	err = tools.RedisCacheFeed(video)
-	if err != nil{
-		fmt.Println("cache feed failed:",err.Error())
+	if err != nil {
+		fmt.Println("cache feed failed:", err.Error())
 		return
 	}
 	return
@@ -115,4 +118,28 @@ func GetVideoService() FeedService {
 		}
 	})
 	return feedService
+}
+
+//GetJsonFeeCache 获取redis中缓存的视频数据
+func GetJsonFeeCache() (VideoList []models.Video) {
+	//连接redis
+	rec, err := redis.Dial("tcp", "120.78.238.68:6379")
+	if err != nil {
+		log.Println("redis dial failed,err:", err.Error())
+		//TODO 错误处理未完成
+	}
+	//从redis获取数据
+	videoCache, err := redis.Values(rec.Do("Lrange", "video_cache", 0, -1))
+	if err != nil {
+		log.Println("get redis video_cache failed,err:", err.Error())
+		//TODO 错误处理未完成
+	}
+	//遍历数据反序列化
+	for _, val := range videoCache {
+		var video models.Video
+		json.Unmarshal(val.([]byte), &video)
+		VideoList = append(VideoList, video)
+	}
+	//
+	return VideoList
 }
