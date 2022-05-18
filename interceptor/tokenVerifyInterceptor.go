@@ -14,7 +14,7 @@ import (
  * @Description: 拦截器
  **/
 
-var(
+var (
 	InCludeUrl = []string{
 		//user
 		"/douyin/user/",
@@ -35,43 +35,44 @@ var(
 
 	IncludeUrlMap = map[string]struct{}{
 		//user
-		"/douyin/user/":{},
+		"/douyin/user/": {},
 		//feed
-		"/douyin/publish/action/":{},
-		"/douyin/publish/list/":{},
+		"/douyin/publish/action/": {},
+		"/douyin/publish/list/":   {},
 		//favorite
-		"/douyin/favorite/action/":{},
-		"/douyin/favorite/list/":{},
+		"/douyin/favorite/action/": {},
+		"/douyin/favorite/list/":   {},
 		//comment
-		"/douyin/comment/action/":{},
-		"/douyin/comment/list/":{},
+		"/douyin/comment/action/": {},
+		"/douyin/comment/list/":   {},
 		//relation
-		"/douyin/relation/action/":{},
-		"/douyin/relation/follow/list/":{},
-		"/douyin/relation/follower/list/":{},
+		"/douyin/relation/action/":        {},
+		"/douyin/relation/follow/list/":   {},
+		"/douyin/relation/follower/list/": {},
 	}
 )
-func TokenVerifyVerifyInterceptor() gin.HandlerFunc{
+
+func TokenVerifyVerifyInterceptor() gin.HandlerFunc {
 	return func(context *gin.Context) {
 		path := context.Request.URL.Path
 		//path is in include url
-		if  _,ok := IncludeUrlMap[path];ok{
+		if _, ok := IncludeUrlMap[path]; ok {
 			token := GetToken(context)
-			if tools.VerifyParamsEmpty(token){
-				context.JSON(http.StatusOK,&controller.Response{
+			if tools.VerifyParamsEmpty(token) {
+				context.JSON(http.StatusOK, &controller.Response{
 					StatusCode: -1,
-					StatusMsg: "token is expire or empty",
+					StatusMsg:  "token is expire or empty",
 				})
 				//stop
 				context.Abort()
 			}
-			err := tools.VeifyToken(token)
-			if err != nil{
+			_, err := tools.VeifyToken(token)
+			if err != nil {
 				//TODO log format
-				fmt.Println("token is expire:" ,err.Error())
-				context.JSON(http.StatusOK,&controller.Response{
+				fmt.Println("token is expire:", err.Error())
+				context.JSON(http.StatusOK, &controller.Response{
 					StatusCode: -1,
-					StatusMsg: "token is expire or empty",
+					StatusMsg:  "token is expire or empty",
 				})
 				//stop
 				context.Abort()
@@ -82,11 +83,13 @@ func TokenVerifyVerifyInterceptor() gin.HandlerFunc{
 }
 
 //different method get token
-func GetToken(context *gin.Context) string{
+func GetToken(context *gin.Context) string {
 	request := context.Request
 	switch request.Method {
-	case "GET" : return context.Query("token")
-	case "POST" : return context.PostForm("token")
+	case "GET":
+		return context.Query("token")
+	case "POST":
+		return context.PostForm("token")
 	}
 	return ""
 }
