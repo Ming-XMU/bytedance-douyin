@@ -97,7 +97,7 @@ var (
 	feedServiceOnce sync.Once
 )
 
-func GetVideoService() FeedService {
+func GetFeedService() FeedService {
 	feedServiceOnce.Do(func() {
 		feedService = &FeedServiceImpl{
 			feedDao: daos.GetFeeDao(),

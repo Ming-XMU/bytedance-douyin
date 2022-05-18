@@ -28,8 +28,8 @@ type UserDaoImpl struct {
 func GetUserDao() UserDao {
 	userDaoOnce.Do(func() {
 		userDao = &UserDaoImpl{
-			db: models.GetDB(),
-			//rec: models.GetRec(),
+			db:  models.GetDB(),
+			rec: models.GetRec(),
 		}
 	})
 	return userDao
@@ -70,7 +70,6 @@ func (u *UserDaoImpl) LastId() int64 {
 //根据id查询对应的user
 func (u *UserDaoImpl) FindById(id int) (*models.User, error) {
 	var user models.User
-	fmt.Println("this ok")
 	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count").Where("id = ?", id).Take(&user).Error
 	fmt.Println(user)
 	if err != nil {

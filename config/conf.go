@@ -50,6 +50,6 @@ func LoadRedis(file *ini.File) {
 
 // 初始化service
 func initService() {
-	controller.FeeSerivce = services.GetVideoService()
+	controller.FeeSerivce = services.GetFeedService()
 	controller.UserSerivce = services.GetUserService()
 }
