@@ -1,0 +1,25 @@
+HELP.md
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.jpg
+.idea
+*.iws
+*.iml
+*.ipr
+/logs
+web/logs
+**/target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+
+
