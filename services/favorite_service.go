@@ -23,6 +23,7 @@ func GetFavoriteService() FavoriteService {
 
 type FavoriteService interface {
 	FavoriteAction(userId, videoId, acton int) error
+	FavoriteJudge(userId, videoId int) bool
 }
 
 type FavoriteServiceImpl struct {
@@ -44,4 +45,14 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId, videoId, action int) error 
 		return f.favoriteDao.DeleteFavorite(userId, videoId)
 	}
 	return errors.New("action is error")
+}
+
+// FavoriteJudge 判断是否有点赞
+// @author wechan
+func (f *FavoriteServiceImpl) FavoriteJudge(userId, videoId int) bool {
+	is, err := f.favoriteDao.JudgeIsFavorite(userId, videoId)
+	if err != nil {
+		return false
+	}
+	return is
 }
