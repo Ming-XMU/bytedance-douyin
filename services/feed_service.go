@@ -11,7 +11,6 @@ import (
 	"log"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"sync"
 )
 import "douyin/daos"
@@ -38,17 +37,11 @@ type FeedServiceImpl struct {
 
 func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//TODO get user_id from token
-	//token := c.PostForm("token")
-	userId := "1"
-	//TODO Verify Token
+	token := c.PostForm("token")
+	tokenKey, err := tools.JwtParseTokenKey(token)
+	user, err := tools.RedisTokenKeyValue(tokenKey)
+	userId := user.UserId
 	file, err := c.FormFile("data")
-	//Verify User_id
-	if tools.VerifyParamsEmpty(userId) {
-		//TODO log format
-		fmt.Println("user_id is empty....")
-		err = errors.New("user_id can not be empty...")
-		return
-	}
 	//create play_url
 	filename := filepath.Base(file.Filename)
 	finalName := fmt.Sprintf("%s_%s", userId, filename)
@@ -76,20 +69,13 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//Save Db
-	id, err := strconv.ParseInt(userId, 10, 64)
-	if err != nil {
-		//TODO log format
-		fmt.Println("user_id validate..")
-		return
-	}
 	video := models.Video{
-		UserId:        id,
+		UserId:        userId,
 		PlayUrl:       playUrl,
 		CoverUrl:      coverUrl,
 		CommentCount:  0,
 		FavoriteCount: 0,
 	}
-	//TODO wait test connect db
 	_, err = f.feedDao.CreateFeed(video)
 	if err != nil {
 		//TODO log format

@@ -2,6 +2,7 @@ package main
 
 import (
 	"douyin/controller"
+	"douyin/interceptor"
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,7 +11,8 @@ func initRouter(r *gin.Engine) {
 	r.Static("/static", "./public")
 
 	apiRouter := r.Group("/douyin")
-
+	//register interceptor
+	apiRouter.Use(interceptor.TokenVerifyVerifyInterceptor())
 	// basic apis
 	apiRouter.GET("/feed/", controller.Feed)
 	apiRouter.GET("/user/", controller.UserInfo)
