@@ -10,20 +10,10 @@ import (
 	"sync/atomic"
 )
 
-// usersLoginInfo use map to store user info, and key is username+password for demo
-// user data will be cleared every time the server starts
-// test data: username=zhanglei, password=douyin
-var usersLoginInfo = map[string]User{
-	"root123456": {
-		Id:            1,
-		Name:          "root",
-		FollowCount:   10,
-		FollowerCount: 5,
-		IsFollow:      true,
-	},
-}
-
-var userIdSequence int64
+var (
+	UserSerivce    services.UserService
+	userIdSequence int64
+)
 
 type UserLoginResponse struct {
 	Response
@@ -44,7 +34,6 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	//密码MD5加密
 	password := tools.Md5Util(c.Query("password"), salt)
-	token := username + password
 	//更新用户ID
 	userIdSequence = services.GetUserService().FindLastUserId()
 	//注册用户
@@ -56,6 +45,14 @@ func Register(c *gin.Context) {
 	} else {
 		//成功注册
 		atomic.AddInt64(&userIdSequence, 1)
+		user, err2 := services.GetUserService().UserInfo(int(userIdSequence))
+		if err2 != nil {
+			return
+		}
+		token, err2 := tools.CreateToken(user)
+		if err2 != nil {
+			return
+		}
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "regist success"},
 			UserId:   userIdSequence,
@@ -64,39 +61,11 @@ func Register(c *gin.Context) {
 	}
 }
 
-//用户注册demo
-//func Register(c *gin.Context) {
-//	username := c.Query("username")
-//	password := c.Query("password")
-//
-//	token := username + password
-//
-//	if _, exist := usersLoginInfo[token]; exist {
-//		c.JSON(http.StatusOK, UserLoginResponse{
-//			Response: Response{StatusCode: 1, StatusMsg: "User already exist"},
-//		})
-//	} else {
-//		atomic.AddInt64(&userIdSequence, 1)
-//		newUser := User{
-//			Id:   userIdSequence,
-//			Name: username,
-//		}
-//		usersLoginInfo[token] = newUser
-//		c.JSON(http.StatusOK, UserLoginResponse{
-//			Response: Response{StatusCode: 0},
-//			UserId:   userIdSequence,
-//			Token:    username + password,
-//		})
-//	}
-//}
-
 // Login 登录接口
 // username: 用户名  password:密码
 func Login(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
-	//token部分暂时未完成
-	token := username + password
 	//登录验证失败
 	//返回：msg:user does not exist | password error
 	if user, err := services.GetUserService().UserLogin(username, password); err != nil {
@@ -105,6 +74,11 @@ func Login(c *gin.Context) {
 		})
 	} else {
 		//登陆成功
+		//更新令牌
+		token, err := tools.CreateToken(user)
+		if err != nil {
+			return
+		}
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "login success"},
 			UserId:   user.Id,
@@ -112,23 +86,6 @@ func Login(c *gin.Context) {
 		})
 	}
 }
-
-//func Login(c *gin.Context) {
-//	username := c.Query("username")
-//	password := c.Query("password")
-//	token := username + password
-//	if user, exist := usersLoginInfo[token]; exist {
-//		c.JSON(http.StatusOK, UserLoginResponse{
-//			Response: Response{StatusCode: 0},
-//			UserId:   user.Id,
-//			Token:    token,
-//		})
-//	} else {
-//		c.JSON(http.StatusOK, UserLoginResponse{
-//			Response: Response{StatusCode: 1, StatusMsg: "User doesn't exist"},
-//		})
-//	}
-//}
 
 //@author cwh
 //根据id获取用户信息

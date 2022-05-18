@@ -1,11 +1,14 @@
 package config
 
 import (
+	"douyin/controller"
 	"douyin/models"
+	"douyin/services"
 	"gopkg.in/ini.v1"
 	"log"
 	"strings"
 )
+
 var (
 	MysqlPath string
 	RedisUrl  string
@@ -23,6 +26,7 @@ func Init() {
 	LoadRedis(file)
 	models.InitDB(MysqlPath)
 	models.InitRedis(RedisUrl)
+	initService()
 }
 
 // LoadMysql
@@ -42,4 +46,10 @@ func LoadRedis(file *ini.File) {
 	Host := file.Section("redis").Key("Host").String()
 	Port := file.Section("redis").Key("Port").String()
 	RedisUrl = strings.Join([]string{"redis://", Host, ":", Port}, "")
+}
+
+// 初始化service
+func initService() {
+	controller.FeeSerivce = services.GetVideoService()
+	controller.UserSerivce = services.GetUserService()
 }
