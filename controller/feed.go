@@ -16,17 +16,18 @@ type FeedResponse struct {
 
 // Feed same demo video list for every request
 func Feed(c *gin.Context) {
-
+	var EarliestTime = time.Now()
 	//vi,_:=redis.String(models.GetRec().Do("Get", "video"))
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  Response{StatusCode: 0, StatusMsg: "success"},
-		VideoList: CreatVideoList(),
-		NextTime:  time.Now().Unix(),
+		VideoList: CreatVideoList(&EarliestTime),
+		NextTime:  EarliestTime.Unix(),
 	})
 }
 
-func CreatVideoList() (videolist []Video) {
+func CreatVideoList(EarliestTime *time.Time) (videolist []Video) {
 	var videoret Video
+
 	videos := services.GetJsonFeeCache()
 	for _, singlevideo := range videos {
 		videoret.Id = singlevideo.ID
@@ -36,20 +37,23 @@ func CreatVideoList() (videolist []Video) {
 		videoret.FavoriteCount = singlevideo.FavoriteCount
 		videoret.Author = getAuthor(int(singlevideo.UserId)) //TODO
 		videoret.IsFavorite = false                          //TODO
+		if EarliestTime.Unix() > singlevideo.CreateAt.Unix() {
+			EarliestTime = &singlevideo.CreateAt
+		}
 		videolist = append(videolist, videoret)
 	}
 	return videolist
 }
 
 func getAuthor(id int) (Author User) {
-	user, err := services.GetUserService().UserInfo(id)
+	getuser, err := services.GetUserService().UserInfo(id)
 	if err != nil {
 		fmt.Println("get authors failed,err: ", err.Error())
 	}
-	Author.Id = user.Id
-	Author.Name = user.Name
-	Author.FollowCount = user.FollowCount
-	Author.FollowerCount = user.FollowerCount
+	Author.Id = getuser.Id
+	Author.Name = getuser.Name
+	Author.FollowCount = getuser.FollowCount
+	Author.FollowerCount = getuser.FollowerCount
 	Author.IsFollow = false //TODO 要查表，未完成
 	return Author
 }
