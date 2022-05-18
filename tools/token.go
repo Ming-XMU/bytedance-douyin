@@ -127,17 +127,24 @@ func VeifyToken(token string) error {
 	if err != nil {
 		return err
 	}
+	//判断tokenKey是否存在
+	exist, err := RedisCheckKey(tokenKey)
+	if exist == false || err != nil {
+		return errors.New("token is not exist")
+	}
+	//获取loginUser登录信息
 	loginUser, err := RedisTokenKeyValue(tokenKey)
 	if err != nil {
 		return err
 	}
+	//过期时间刷新
 	expireTime := loginUser.ExpiresAt
 	curTime := time.Now()
 	//验证token是否失效
 	if expireTime < curTime.Unix() {
 		return errors.New("token valid")
 	}
-	// 相差不足20分钟，自动刷新
+	// token有效且相差不足20分钟，自动刷新
 	am, _ := time.ParseDuration("20m")
 	if expireTime <= curTime.Add(am).Unix() {
 		err := RefreshToken(loginUser)
