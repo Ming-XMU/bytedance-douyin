@@ -26,6 +26,19 @@ type UserResponse struct {
 	User User `json:"user"`
 }
 
+// usersLoginInfo use map to store user info, and key is username+password for demo
+// user data will be cleared every time the server starts
+// test data: username=zhanglei, password=douyin
+var usersLoginInfo = map[string]User{
+	"root123456": {
+		Id:            1,
+		Name:          "root",
+		FollowCount:   10,
+		FollowerCount: 5,
+		IsFollow:      true,
+	},
+}
+
 //注册功能
 //失败返回错误信息
 func Register(c *gin.Context) {
