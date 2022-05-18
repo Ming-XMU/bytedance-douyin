@@ -43,7 +43,7 @@ func CreateToken(user *models.User) (string, error) {
 	}
 	tokenKey := LoginTokenKey + uuid.String()
 	fmt.Println(tokenKey)
-	IssuedTime := time.Now().Unix()
+	issuedTime := time.Now().Unix()
 	//设置过期时间
 	t := fmt.Sprintf("%dm", DefaultExpirationTime/60)
 	am, err := time.ParseDuration(t)
@@ -51,10 +51,13 @@ func CreateToken(user *models.User) (string, error) {
 		return "", err
 	}
 	expireTime := time.Now().Add(am).Unix()
-	loginUser := new(LoginUser)
-	loginUser.TokenKey = tokenKey
-	loginUser.IssuedAt = IssuedTime
-	loginUser.ExpiresAt = expireTime
+	loginUser := &LoginUser{
+		TokenKey:  tokenKey,
+		IssuedAt:  issuedTime,
+		ExpiresAt: expireTime,
+		Name:      user.Name,
+		UserId:    user.Id,
+	}
 	err = RedisCacheTokenKey(tokenKey, loginUser, DefaultExpirationTime)
 	if err != nil {
 		return "", err
@@ -87,6 +90,7 @@ func JwtParseTokenKey(token string) (string, error) {
 		return []byte(PrivateKey), nil
 	})
 	if err != nil {
+		//log.Fatalln("token is invalid")
 		return "", err
 	}
 	return claims.TokenKey, err
@@ -117,8 +121,16 @@ func RefreshToken(loginUser *LoginUser) error {
 // @author zia
 // @Description: Token验证 | 刷新
 // @param loginUser
-// @return error
-func VeifyToken(loginUser *LoginUser) error {
+// @return (nil token有效 | err token 过期,不存在)
+func VeifyToken(token string) error {
+	tokenKey, err := JwtParseTokenKey(token)
+	if err != nil {
+		return err
+	}
+	loginUser, err := RedisTokenKeyValue(tokenKey)
+	if err != nil {
+		return err
+	}
 	expireTime := loginUser.ExpiresAt
 	curTime := time.Now()
 	//验证token是否失效

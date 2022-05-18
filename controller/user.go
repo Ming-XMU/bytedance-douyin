@@ -39,7 +39,7 @@ var usersLoginInfo = map[string]User{
 	},
 }
 
-//注册功能
+// Register 注册功能
 //失败返回错误信息
 func Register(c *gin.Context) {
 	//随机生成salt
@@ -49,6 +49,7 @@ func Register(c *gin.Context) {
 	password := tools.Md5Util(c.Query("password"), salt)
 	//更新用户ID
 	userIdSequence = services.GetUserService().FindLastUserId()
+	atomic.AddInt64(&userIdSequence, 1)
 	//注册用户
 	if err := services.GetUserService().UserRegist(username, password, userIdSequence, salt); err != nil {
 		//注册失败返回错误信息
@@ -57,7 +58,6 @@ func Register(c *gin.Context) {
 		})
 	} else {
 		//成功注册
-		atomic.AddInt64(&userIdSequence, 1)
 		user, err2 := services.GetUserService().UserInfo(int(userIdSequence))
 		if err2 != nil {
 			return
@@ -129,5 +129,4 @@ func UserInfo(c *gin.Context) {
 			},
 		})
 	}
-
 }
