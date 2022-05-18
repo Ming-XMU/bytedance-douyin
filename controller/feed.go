@@ -2,6 +2,7 @@ package controller
 
 import (
 	"douyin/services"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -25,7 +26,6 @@ func Feed(c *gin.Context) {
 }
 
 func CreatVideoList() (videolist []Video) {
-
 	var videoret Video
 	videos := services.GetJsonFeeCache()
 	for _, singlevideo := range videos {
@@ -34,13 +34,33 @@ func CreatVideoList() (videolist []Video) {
 		videoret.PlayUrl = singlevideo.PlayUrl
 		videoret.CommentCount = singlevideo.CommentCount
 		videoret.FavoriteCount = singlevideo.FavoriteCount
-		videoret.Author = DemoUser  //TODO
-		videoret.IsFavorite = false //TODO
+		videoret.Author = getAuthor(int(singlevideo.UserId)) //TODO
+		videoret.IsFavorite = false                          //TODO
 		videolist = append(videolist, videoret)
 	}
 	return videolist
 }
 
+func getAuthor(id int) (Author User) {
+	user, err := services.GetUserService().UserInfo(id)
+	if err != nil {
+		fmt.Println("get authors failed,err: ", err.Error())
+	}
+	Author.Id = user.Id
+	Author.Name = user.Name
+	Author.FollowCount = user.FollowCount
+	Author.FollowerCount = user.FollowerCount
+	Author.IsFollow = false //TODO 要查表，未完成
+	return Author
+}
+
+//var DemoUser = User{
+//	Id:            1,
+//	Name:          "TestUser",
+//	FollowCount:   0,
+//	FollowerCount: 0,
+//	IsFollow:      false,
+//}
 //var DemoVideos = []Video{
 //	{
 //		Id:            1,
