@@ -47,6 +47,7 @@ func Register(c *gin.Context) {
 	//密码MD5加密
 	password := tools.Md5Util(c.Query("password"), salt)
 	pwd := c.Query("password")
+	//判断注册信息长度
 	if len(username) > 32 || len(pwd) > 32 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "用户注册信息过长"},
@@ -55,7 +56,6 @@ func Register(c *gin.Context) {
 	//更新用户ID
 	userIdSequence = services.GetUserService().FindLastUserId()
 	atomic.AddInt64(&userIdSequence, 1)
-
 	//注册用户
 	if err := services.GetUserService().UserRegist(username, password, userIdSequence, salt); err != nil {
 		//注册失败返回错误信息
