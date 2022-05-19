@@ -46,6 +46,12 @@ func Register(c *gin.Context) {
 	username := c.Query("username")
 	//密码MD5加密
 	password := tools.Md5Util(c.Query("password"), salt)
+	pwd := c.Query("password")
+	if len(username) > 32 || len(pwd) > 32 {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "用户注册信息过长"},
+		})
+	}
 	//更新用户ID
 	userIdSequence = services.GetUserService().FindLastUserId()
 	atomic.AddInt64(&userIdSequence, 1)
