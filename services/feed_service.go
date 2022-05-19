@@ -124,7 +124,9 @@ func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error
 		log.Println("get redis video_cache failed,err:", err.Error())
 		return nil, err
 	}
-	if videoCache == nil { //读不到redis数据
+	if videoCache == nil || len(videoCache) < 1 { //读不到redis数据
+		log.Println("video cache:", videoCache)
+		log.Println("redis no data")
 		return nil, err
 	}
 	//遍历数据反序列化
@@ -144,6 +146,7 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 	videos, err := f.GetJsonFeeCache()
 	if err != nil || videos == nil {
 		fmt.Println("create video list get redis cache failed,err:", err.Error())
+		fmt.Println("len of video cache: ", len(videos))
 		return models.VODemoVideos //获取不到redis缓存数据，直接返回demovideos
 	}
 	for _, singlevideo := range videos {

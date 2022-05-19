@@ -26,6 +26,8 @@ type Video struct {
 	FavoriteCount int64 `gorm:"column:favorite_count"`
 	//create time
 	CreateAt time.Time `gorm:"autoCreateTime;column:create_at"`
+	//title string
+	Title string `gorm:"column:title"`
 }
 
 func (v *Video) TableName() string {
