@@ -111,6 +111,7 @@ func GetFeedService() FeedService {
 //GetJsonFeeCache 获取redis中缓存的视频数据
 //author: wechan
 func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error) {
+	VideoList = make([]models.Video, 0, 31)
 	//连接redis
 	rec, err := redis.Dial("tcp", "120.78.238.68:6379")
 	if err != nil {
@@ -130,7 +131,7 @@ func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error
 	for _, val := range videoCache {
 		var video models.Video
 		err = json.Unmarshal(val.([]byte), &video)
-		VideoList = append(VideoList, video) //初始化要先分配内存？TODO
+		VideoList = append(VideoList, video)
 	}
 	return VideoList, err
 }
@@ -138,6 +139,7 @@ func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error
 // CreatVideoList 获取视频流列表
 // author:wechan
 func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) {
+	videolist = make([]models.VOVideo, 0, 31)
 	var videoret models.VOVideo
 	videos, err := f.GetJsonFeeCache()
 	if err != nil || videos == nil {
@@ -156,7 +158,7 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 		} else {
 			videoret.IsFavorite = GetFavoriteService().FavoriteJudge(user, int(singlevideo.ID))
 		}
-		videolist = append(videolist, videoret) //初始化要分配内存？TODO
+		videolist = append(videolist, videoret)
 	}
 	return videolist
 }

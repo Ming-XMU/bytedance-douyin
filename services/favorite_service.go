@@ -50,6 +50,9 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId, videoId, action int) error 
 // FavoriteJudge 判断是否有点赞
 // @author wechan
 func (f *FavoriteServiceImpl) FavoriteJudge(userId, videoId int) bool {
+	if userId == 0 {
+		return false //未登录用户，直接返回false
+	}
 	is, err := f.favoriteDao.JudgeIsFavorite(userId, videoId)
 	if err != nil {
 		return false
