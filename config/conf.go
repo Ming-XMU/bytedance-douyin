@@ -37,7 +37,7 @@ func LoadMysql(file *ini.File) {
 	DbUser := file.Section("mysql").Key("DbUser").String()
 	DbPassword := file.Section("mysql").Key("DbPassword").String()
 	DbName := file.Section("mysql").Key("DbName").String()
-	MysqlPath = strings.Join([]string{DbUser, ":", DbPassword, "@tcp(", DbHost, ":", DbPort, ")/", DbName}, "")
+	MysqlPath = strings.Join([]string{DbUser, ":", DbPassword, "@tcp(", DbHost, ":", DbPort, ")/", DbName, "?charset=utf8&parseTime=True"}, "")
 }
 
 // LoadRedis
