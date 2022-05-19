@@ -161,6 +161,7 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 		} else {
 			videoret.IsFavorite = GetFavoriteService().FavoriteJudge(user, int(singlevideo.ID))
 		}
+		videoret.Title = singlevideo.Title
 		videolist = append(videolist, videoret)
 	}
 	return videolist

@@ -8,6 +8,7 @@ type VOVideo struct {
 	FavoriteCount int64  `json:"favorite_count,omitempty"`
 	CommentCount  int64  `json:"comment_count,omitempty"`
 	IsFavorite    bool   `json:"is_favorite,omitempty"`
+	Title         string `json:"title,omitempty"`
 }
 
 type VOUser struct {
@@ -27,6 +28,7 @@ var VODemoVideos = []VOVideo{
 		FavoriteCount: 0,
 		CommentCount:  0,
 		IsFavorite:    false,
+		Title:         "demo_title",
 	},
 }
 
