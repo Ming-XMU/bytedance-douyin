@@ -30,6 +30,8 @@ const (
 type FeedService interface {
 	//public video
 	PublishAction(c *gin.Context) error
+	CreatVideoList(user int) []models.VOVideo
+	GetAuthor(id int) models.VOUser
 }
 type FeedServiceImpl struct {
 	feedDao daos.FeedDao
@@ -107,25 +109,68 @@ func GetFeedService() FeedService {
 }
 
 //GetJsonFeeCache 获取redis中缓存的视频数据
-func GetJsonFeeCache() (VideoList []models.Video) {
+//author: wechan
+func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error) {
 	//连接redis
 	rec, err := redis.Dial("tcp", "120.78.238.68:6379")
 	if err != nil {
 		log.Println("redis dial failed,err:", err.Error())
-		//TODO 错误处理未完成
+		return nil, err
 	}
 	//从redis获取数据
 	videoCache, err := redis.Values(rec.Do("Lrange", "video_cache", 0, -1))
 	if err != nil {
 		log.Println("get redis video_cache failed,err:", err.Error())
-		//TODO 错误处理未完成
+		return nil, err
+	}
+	if videoCache == nil { //读不到redis数据
+		return nil, err
 	}
 	//遍历数据反序列化
 	for _, val := range videoCache {
 		var video models.Video
-		json.Unmarshal(val.([]byte), &video)
-		VideoList = append(VideoList, video)
+		err = json.Unmarshal(val.([]byte), &video)
+		VideoList = append(VideoList, video) //初始化要先分配内存？TODO
 	}
-	//
-	return VideoList
+	return VideoList, err
+}
+
+// CreatVideoList 获取视频流列表
+// author:wechan
+func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) {
+	var videoret models.VOVideo
+	videos, err := f.GetJsonFeeCache()
+	if err != nil || videos == nil {
+		fmt.Println("create video list get redis cache failed,err:", err.Error())
+		return models.VODemoVideos //获取不到redis缓存数据，直接返回demovideos
+	}
+	for _, singlevideo := range videos {
+		videoret.Id = singlevideo.ID
+		videoret.CoverUrl = singlevideo.CoverUrl
+		videoret.PlayUrl = singlevideo.PlayUrl
+		videoret.CommentCount = singlevideo.CommentCount
+		videoret.FavoriteCount = singlevideo.FavoriteCount
+		videoret.Author = f.GetAuthor(int(singlevideo.UserId))
+		if user == 0 {
+			videoret.IsFavorite = false
+		} else {
+			videoret.IsFavorite = GetFavoriteService().FavoriteJudge(user, int(singlevideo.ID))
+		}
+		videolist = append(videolist, videoret) //初始化要分配内存？TODO
+	}
+	return videolist
+}
+
+func (f *FeedServiceImpl) GetAuthor(id int) (Author models.VOUser) {
+	getuser, err := GetUserService().UserInfo(id)
+	if err != nil {
+		fmt.Println("get authors failed,err: ", err.Error())
+		return models.VODemoUser
+	}
+	Author.Id = getuser.Id
+	Author.Name = getuser.Name
+	Author.FollowCount = getuser.FollowCount
+	Author.FollowerCount = getuser.FollowerCount
+	Author.IsFollow = false // 要查表，未完成
+	return Author
 }
