@@ -13,7 +13,7 @@ import (
 func FavoriteAction(c *gin.Context) {
 	//权限鉴定
 	token := c.Query("token")
-	if tools.VeifyToken(token) != nil {
+	if _, err := tools.VeifyToken(token); err != nil {
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "请先登录！"},
 		})

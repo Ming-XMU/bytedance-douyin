@@ -49,6 +49,7 @@ func Register(c *gin.Context) {
 	//更新用户ID
 	userIdSequence = services.GetUserService().FindLastUserId()
 	atomic.AddInt64(&userIdSequence, 1)
+
 	//注册用户
 	if err := services.GetUserService().UserRegist(username, password, userIdSequence, salt); err != nil {
 		//注册失败返回错误信息
@@ -59,11 +60,15 @@ func Register(c *gin.Context) {
 		//成功注册
 		user, err2 := services.GetUserService().UserInfo(int(userIdSequence))
 		if err2 != nil {
-			return
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: Response{StatusCode: 1, StatusMsg: err2.Error()},
+			})
 		}
-		token, err2 := tools.CreateToken(user)
-		if err2 != nil {
-			return
+		token, err3 := tools.CreateToken(user)
+		if err3 != nil {
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: Response{StatusCode: 1, StatusMsg: "create token failed"},
+			})
 		}
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "regist success"},

@@ -56,7 +56,7 @@ func (u *UserServiceImpl) UserRegist(username string, password string, userId in
 	//判断用户是否已经注册
 	_, err := u.userDao.FindByName(username)
 	if err == nil {
-		return errors.New("user does not exist")
+		return errors.New("user exist")
 	}
 	//加入判断用户名是否合规的方法(未实现)
 	//添加用户
@@ -85,7 +85,7 @@ func (u *UserServiceImpl) FindLastUserId() int64 {
 func (u *UserServiceImpl) UserInfo(userId int) (*models.User, error) {
 	user, err := u.userDao.FindById(userId)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("userinfo cannot find user")
 	}
 	return user, nil
 }

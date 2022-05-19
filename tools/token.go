@@ -121,36 +121,36 @@ func RefreshToken(loginUser *LoginUser) error {
 // @author zia
 // @Description: Token验证 | 刷新
 // @param loginUser
-// @return (nil token有效 | err token 过期,不存在)
-func VeifyToken(token string) error {
+// @return (token有效：loginUser , nil | token无效: nil, err)
+func VeifyToken(token string) (*LoginUser, error) {
 	tokenKey, err := JwtParseTokenKey(token)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	//判断tokenKey是否存在
 	exist, err := RedisCheckKey(tokenKey)
 	if exist == false || err != nil {
-		return errors.New("token is not exist")
+		return nil, errors.New("token is not exist")
 	}
 	//获取loginUser登录信息
 	loginUser, err := RedisTokenKeyValue(tokenKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	//过期时间刷新
 	expireTime := loginUser.ExpiresAt
 	curTime := time.Now()
 	//验证token是否失效
 	if expireTime < curTime.Unix() {
-		return errors.New("token valid")
+		return nil, errors.New("token valid")
 	}
 	// token有效且相差不足20分钟，自动刷新
 	am, _ := time.ParseDuration("20m")
 	if expireTime <= curTime.Add(am).Unix() {
-		err := RefreshToken(loginUser)
+		err = RefreshToken(loginUser)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return loginUser, nil
 }

@@ -14,6 +14,7 @@ var (
 type FavoriteDao interface {
 	InsertFavorite(favorite *models.Favorite) error
 	DeleteFavorite(userId, videoId int) error
+	JudgeIsFavorite(userId, videoId int) (bool, error)
 }
 
 type FavoriteDaoImpl struct {
@@ -35,4 +36,15 @@ func (f *FavoriteDaoImpl) InsertFavorite(favorite *models.Favorite) error {
 
 func (f *FavoriteDaoImpl) DeleteFavorite(userId, videoId int) error {
 	return f.db.Debug().Where("user_id = ? && video_id = ?", userId, videoId).Delete(&models.Favorite{}).Error
+}
+
+// JudgeIsFavorite 判断是否已经点赞
+// Author:wechan
+func (f *FavoriteDaoImpl) JudgeIsFavorite(userId, videoId int) (bool, error) {
+	var exti models.Favorite
+	err := f.db.Debug().Where("user_id=?&&video_id=?", userId, videoId).Take(&exti).Error
+	if exti.VideoId == 0 {
+		return false, err
+	}
+	return true, err
 }
