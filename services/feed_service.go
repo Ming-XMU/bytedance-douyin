@@ -38,7 +38,13 @@ type FeedServiceImpl struct {
 }
 
 func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
-	//TODO get user_id from token
+	//verify title
+	title := c.PostForm("title")
+	if tools.VerifyParamsEmpty(title){
+		err = errors.New("title is empty..")
+		return
+	}
+	//get user id from token
 	token := c.PostForm("token")
 	tokenKey, err := tools.JwtParseTokenKey(token)
 	user, err := tools.RedisTokenKeyValue(tokenKey)
@@ -46,7 +52,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	file, err := c.FormFile("data")
 	//create play_url
 	filename := filepath.Base(file.Filename)
-	finalName := fmt.Sprintf("%s_%s", userId, filename)
+	finalName := fmt.Sprintf("%d_%s", userId, filename)
 	saveFile := filepath.Join("./public/video", finalName)
 	//create video
 	if err = c.SaveUploadedFile(file, saveFile); err != nil {
@@ -77,6 +83,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		CoverUrl:      coverUrl,
 		CommentCount:  0,
 		FavoriteCount: 0,
+		Title: title,
 	}
 	_, err = f.feedDao.CreateFeed(video)
 	if err != nil {
@@ -145,8 +152,8 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 	var videoret models.VOVideo
 	videos, err := f.GetJsonFeeCache()
 	if err != nil || videos == nil {
-		fmt.Println("create video list get redis cache failed,err:", err.Error())
-		fmt.Println("len of video cache: ", len(videos))
+		//fmt.Println("create video list get redis cache failed,err:", err.Error())
+		//fmt.Println("len of video cache: ", len(videos))
 		return models.VODemoVideos //获取不到redis缓存数据，直接返回demovideos
 	}
 	for _, singlevideo := range videos {
