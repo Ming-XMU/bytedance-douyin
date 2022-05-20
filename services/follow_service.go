@@ -31,11 +31,11 @@ func GetFollowService() FollowService {
 
 func (f *FollowServiceImpl) Action(userId string, toUserId string, actionType string) error {
 	//关注发起者:userId,被关注者:toUserId
-	uid, err := strconv.ParseInt(userId, 10, 64)
+	uid, err := strconv.Atoi(userId)
 	if err != nil {
 		return err
 	}
-	tuid, err := strconv.ParseInt(toUserId, 10, 64)
+	tuid, err := strconv.Atoi(toUserId)
 	if err != nil {
 		return err
 	}

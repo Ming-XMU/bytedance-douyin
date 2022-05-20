@@ -5,8 +5,8 @@ package models
 const FollowTableName string = "follow"
 
 type Follow struct {
-	FollowId   int `gorm:"column:follow_id"`
-	FollowerId int `gorm:"column:follower_id"`
+	FollowId   int `gorm:"column:follow_id";primaryKey`
+	FollowerId int `gorm:"column:follower_id";primaryKey`
 }
 
 func (f *Follow) TableName() string {
