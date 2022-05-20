@@ -19,8 +19,8 @@ var (
 		//user
 		"/douyin/user/",
 		//feed
-		"/douyin/publish/action",
-		"/douyin/publish/list",
+		"/douyin/pub/action",
+		"/douyin/pub/list",
 		//favorite
 		"/douyin/favorite/action",
 		"/douyin/favorite/list",
@@ -37,8 +37,8 @@ var (
 		//user
 		"/douyin/user/": {},
 		//feed
-		"/douyin/publish/action/": {},
-		"/douyin/publish/list/":   {},
+		"/douyin/pub/action/": {},
+		"/douyin/pub/list/":   {},
 		//favorite
 		"/douyin/favorite/action/": {},
 		"/douyin/favorite/list/":   {},
@@ -46,7 +46,7 @@ var (
 		"/douyin/comment/action/": {},
 		"/douyin/comment/list/":   {},
 		//relation
-		"/douyin/relation/action/":        {},
+		//"/douyin/relation/action/":        {},
 		"/douyin/relation/follow/list/":   {},
 		"/douyin/relation/follower/list/": {},
 	}
