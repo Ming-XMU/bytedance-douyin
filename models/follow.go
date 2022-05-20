@@ -1,12 +1,14 @@
 package models
 
-const TableNameFollow string = "follow"
+//Author: Wechan
+
+const FollowTableName string = "follow"
 
 type Follow struct {
-	FollowId   int64 `gorm:"primaryKey"`
-	FollowerId int64 `gorm:"primaryKey"`
+	FollowId   int `gorm:"column:follow_id"`
+	FollowerId int `gorm:"column:follower_id"`
 }
 
-func (*Follow) TableName() string {
-	return TableNameFollow
+func (f *Follow) TableName() string {
+	return FollowTableName
 }

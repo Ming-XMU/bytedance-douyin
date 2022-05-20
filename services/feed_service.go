@@ -31,7 +31,7 @@ type FeedService interface {
 	//public video
 	PublishAction(c *gin.Context) error
 	CreatVideoList(user int) []models.VOVideo
-	GetAuthor(id int) models.VOUser
+	GetAuthor(user, id int) (Author models.VOUser)
 }
 type FeedServiceImpl struct {
 	feedDao daos.FeedDao
@@ -40,7 +40,7 @@ type FeedServiceImpl struct {
 func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//verify title
 	title := c.PostForm("title")
-	if tools.VerifyParamsEmpty(title){
+	if tools.VerifyParamsEmpty(title) {
 		err = errors.New("title is empty..")
 		return
 	}
@@ -83,7 +83,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		CoverUrl:      coverUrl,
 		CommentCount:  0,
 		FavoriteCount: 0,
-		Title: title,
+		Title:         title,
 	}
 	_, err = f.feedDao.CreateFeed(video)
 	if err != nil {
@@ -162,8 +162,8 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 		videoret.PlayUrl = singlevideo.PlayUrl
 		videoret.CommentCount = singlevideo.CommentCount
 		videoret.FavoriteCount = singlevideo.FavoriteCount
-		videoret.Author = f.GetAuthor(int(singlevideo.UserId))
-		if user == 0 {
+		videoret.Author = f.GetAuthor(user, int(singlevideo.UserId))
+		if user == 0 { //未登录用户，是否点赞即为默认值未点赞
 			videoret.IsFavorite = false
 		} else {
 			videoret.IsFavorite = GetFavoriteService().FavoriteJudge(user, int(singlevideo.ID))
@@ -174,7 +174,7 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 	return videolist
 }
 
-func (f *FeedServiceImpl) GetAuthor(id int) (Author models.VOUser) {
+func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 	getuser, err := GetUserService().UserInfo(id)
 	if err != nil {
 		fmt.Println("get authors failed,err: ", err.Error())
@@ -184,6 +184,14 @@ func (f *FeedServiceImpl) GetAuthor(id int) (Author models.VOUser) {
 	Author.Name = getuser.Name
 	Author.FollowCount = getuser.FollowCount
 	Author.FollowerCount = getuser.FollowerCount
-	Author.IsFollow = false // 要查表，未完成
+	if user == 0 { //未登录用户，关注即为默认值未关注
+		Author.IsFollow = false
+	} else { //user-登录用户id getuser.id-视频作者id，前后关系!
+		Author.IsFollow, err = daos.GetFollowDao().JudgeIsFollow(user, int(getuser.Id))
+		if err != nil {
+			log.Println("feed 数据库读取follow出错", err.Error())
+			Author.IsFollow = false //数据库读取follow出错时，使用默认值false
+		}
+	}
 	return Author
 }

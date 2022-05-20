@@ -41,9 +41,9 @@ func (f *FavoriteDaoImpl) DeleteFavorite(userId, videoId int) error {
 // JudgeIsFavorite 判断是否已经点赞
 // Author:wechan
 func (f *FavoriteDaoImpl) JudgeIsFavorite(userId, videoId int) (bool, error) {
-	var exti models.Favorite
-	err := f.db.Debug().Where("user_id=?&&video_id=?", userId, videoId).Take(&exti).Error
-	if exti.VideoId == 0 {
+	var exist models.Favorite
+	err := f.db.Debug().Where("user_id=?&&video_id=?", userId, videoId).Take(&exist).Error
+	if exist.VideoId == 0 {
 		return false, err
 	}
 	return true, err
