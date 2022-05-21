@@ -21,6 +21,7 @@ type FollowDao interface {
 	DelFollow(follow *models.Follow) error
 	FindFollow(followId string, followerId string) (*models.Follow, error)
 	JudgeIsFollow(followId, followerId int) (is bool, err error)
+	UserFollow(userId int) ([]models.Follow, error)
 }
 
 type FollowDaoImpl struct {
@@ -80,4 +81,13 @@ func (f *FollowDaoImpl) FindFollow(followId string, followerId string) (*models.
 		return nil, err
 	}
 	return &follow, nil
+}
+
+func (f *FollowDaoImpl) UserFollow(userId int) ([]models.Follow, error) {
+	var res []models.Follow
+	err := f.db.Debug().Select("follow_id").Where("follower_id = ?", userId).Find(&res).Error
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }

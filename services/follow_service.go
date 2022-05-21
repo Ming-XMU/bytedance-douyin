@@ -3,6 +3,7 @@ package services
 import (
 	"douyin/daos"
 	"douyin/models"
+	"douyin/tools"
 	"errors"
 	"strconv"
 	"sync"
@@ -18,6 +19,7 @@ var (
 
 type FollowService interface {
 	Action(userId string, toUserId string, actionType string) error
+	FollowListCdRedis(userId int) error
 }
 type FollowServiceImpl struct {
 	followDao daos.FollowDao
@@ -66,6 +68,23 @@ func (f *FollowServiceImpl) Action(userId string, toUserId string, actionType st
 		//清除redis的userId_toUserId取关操作缓存
 		//...待补充
 	}
+	return nil
+}
+
+func (f *FollowServiceImpl) FollowListCdRedis(userId int) error {
+	if !tools.RedisKeyExists(userId) {
+		return tools.RedisKeyFlush(userId)
+	}
+	follows, err := f.followDao.UserFollow(userId)
+	if err != nil {
+		return err
+	}
+	for _, value := range follows {
+		//sadd userId followId
+		_ = tools.RedisDoKV("SADD", userId, value.FollowId)
+	}
+	//设置半小时有效期
+	_ = tools.RedisDoKV("EXPIRE", userId, 1800)
 	return nil
 }
 

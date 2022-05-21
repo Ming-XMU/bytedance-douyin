@@ -83,7 +83,7 @@ func RedisTokenKeyValue(k string) (u *LoginUser, err error) {
 // @param conn	redis connection
 // @param k	键值
 // @return error
-func RedisKeyFlush(k string) error {
+func RedisKeyFlush(k interface{}) error {
 	conn := models.GetRec()
 	_, err := conn.Do("expire", k, DefaultExpirationTime)
 	if err != nil {
@@ -126,12 +126,35 @@ func RedisDeleteKey(k string) error {
 	return nil
 }
 
-//@author 执行各种无需返回值操作
-func RedisDo(action string, nums ...interface{}) error {
+//@author cwh
+//redis操作：action name value
+func RedisDoKV(action string, name, value interface{}) error {
 	con := models.GetRec()
-	_, err := con.Do(action, nums)
+	_, err := con.Do(action, name, value)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+//@author cwh
+//redis操作：action name key value
+func RedisDoHash(action string, name, key, value interface{}) error {
+	con := models.GetRec()
+	_, err := con.Do(action, name, key, value)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//@author cwh
+//key存在判断
+func RedisKeyExists(key interface{}) bool {
+	con := models.GetRec()
+	do, _ := con.Do("EXISTS", key)
+	if do == 1 {
+		return true
+	}
+	return false
 }

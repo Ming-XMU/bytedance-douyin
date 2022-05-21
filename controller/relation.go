@@ -4,7 +4,6 @@ import (
 	"douyin/mq"
 	"douyin/services"
 	"douyin/tools"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -30,45 +29,50 @@ func RelationAction(c *gin.Context) {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "前先登录！"})
 		return
 	}
+
 	//参数userId跟token一致
 	userId := c.Query("user_id")
 	if strconv.FormatInt(user.UserId, 10) != userId {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户检验错误！"})
 		return
 	}
-	//参数验证，to_user_id是否存在，type值是否合法
-	toUserId, err := strconv.Atoi(c.Query("to _user_id"))
-	actionType := c.Query("action_type")
-	if (actionType != "1" && actionType != "2") || err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作检验错误！"})
-		return
-	}
+
 	//用户存在验证
+	toUserId, err := strconv.Atoi(c.Query("to_user_id"))
 	_, err = services.GetUserService().UserInfo(toUserId)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "对应用户不存在！"})
 		return
 	}
-	//redis处理缓存关注数量，hincrby cacheHashWriter to_user_id 1 or -1
-	if actionType == "2" {
-		actionType = "-1"
-	}
-	err = tools.RedisDo("HINCRBY", services.GetFollowWrite(), toUserId, actionType)
+	//缓存查询，不存在便加载
+	err = services.GetFollowService().FollowListCdRedis(int(user.UserId))
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "系统错误!请稍后重试！"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "缓存错误！"})
 		return
 	}
-	//redis缓存关注，hset user_id to_user_id actionType
-	err = tools.RedisDo("HSET", userId, toUserId, actionType)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "系统错误!请稍后重试！"})
-		//处理之前加入的缓存，hdecrby cacheHashWrite to_user_id 1 or -1
-		err := tools.RedisDo("HDECRBY", services.GetFollowWrite(), toUserId, actionType)
-		if err != nil {
-			fmt.Println(userId + "在redis中多了一个“意外的”关注")
-		}
+
+	actionType := c.Query("action_type")
+	var action string
+	var add int
+	if actionType == "1" {
+		//关注操作，redis缓存列表添加toUserId，对应toUserId一个关注数
+		action = "SADD"
+		add = -1
+	} else if actionType == "2" {
+		//取关操作，redis缓存列表添加toUserId，对应toUserId一个关注数
+		action = "SREM"
+		add = -1
+	} else {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作类型错误！"})
 		return
 	}
+	//sadd userId touserId
+	if tools.RedisDoKV(action, userId, toUserId) != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "系统错误！，请稍后重试"})
+		return
+	}
+	//hincrby cacheHashWrite toUserId 1
+	_ = tools.RedisDoHash("HINCRBY", services.GetFollowWrite(), toUserId, add)
 	//mq信息处理
 	rabbitmq := mq.GetFollowMQ()
 	msg := strings.Join([]string{userId, strconv.Itoa(toUserId), actionType}, "_")
