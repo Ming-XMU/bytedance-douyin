@@ -15,6 +15,7 @@ var (
 	MysqlPath string
 	RedisUrl  string
 	MQUrl     string
+	RedisPass string
 )
 
 // Init
@@ -32,7 +33,7 @@ func Init() {
 	//mq.InitMQ(MQUrl)
 	//FollowQueueListen()
 	models.InitDB(MysqlPath)
-	models.InitRedis(RedisUrl)
+	models.InitRedis(RedisUrl,RedisPass)
 	initService()
 
 }
@@ -53,6 +54,7 @@ func LoadMysql(file *ini.File) {
 func LoadRedis(file *ini.File) {
 	Host := file.Section("redis").Key("Host").String()
 	Port := file.Section("redis").Key("Port").String()
+	RedisPass = file.Section("redis").Key("Pass").String()
 	RedisUrl = strings.Join([]string{"redis://", Host, ":", Port}, "")
 }
 

@@ -3,7 +3,9 @@ package services
 import (
 	"douyin/daos"
 	"douyin/models"
-	"errors"
+	mq "douyin/mq"
+	"douyin/tools"
+	"encoding/json"
 	"sync"
 )
 
@@ -35,16 +37,34 @@ type FavoriteServiceImpl struct {
 //@videoId 视频id
 //@action 1点赞，2取消
 func (f *FavoriteServiceImpl) FavoriteAction(userId, videoId, action int) error {
-	if action == 1 {
-		favorite := &models.Favorite{
-			UserId:  userId,
-			VideoId: videoId,
-		}
-		return f.favoriteDao.InsertFavorite(favorite)
-	} else if action == 2 {
-		return f.favoriteDao.DeleteFavorite(userId, videoId)
+	favorite := &models.Favorite{
+		UserId:  userId,
+		VideoId: videoId,
 	}
-	return errors.New("action is error")
+	//cache
+	if action == 1 {
+		tools.RedisCacheFavorite(favorite)
+	} else if action == 2 {
+		tools.RedisCacheCancelFavorite(favorite)
+	}
+	//send msg to mq
+	favoriteAction := &mq.FavoriteActionMsg{
+		Favorite: favorite,
+		Action: action,
+	}
+	jsonMsg, err := json.Marshal(favoriteAction)
+	if err != nil{
+		//TODO Roll Back
+		return err
+	}
+	//TODO TEST
+	rabbitMQSimple := mq.NewRabbitMQSimple("favoriteActionQueue", "amqp://admin:admin@192.168.160.134:5672/my_vhost")
+	err = rabbitMQSimple.PublishSimple(string(jsonMsg))
+	if err != nil{
+		//TODO Roll Back
+		return err
+	}
+	return err
 }
 
 // FavoriteJudge 判断是否有点赞
