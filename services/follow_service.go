@@ -11,6 +11,9 @@ import (
 var (
 	followService     FollowService
 	followServiceOnce sync.Once
+	//管理redis中关注数的hash名
+	cacheHashRead  = "follow_hash_one" //写入使用的变量
+	cacheHashWrite = "follow_hash_two" //读出使用的变量
 )
 
 type FollowService interface {
@@ -64,4 +67,16 @@ func (f *FollowServiceImpl) Action(userId string, toUserId string, actionType st
 		//...待补充
 	}
 	return nil
+}
+
+func ReHashKey() {
+	cacheHashWrite, cacheHashRead = cacheHashRead, cacheHashWrite
+}
+
+func GetFollowWrite() string {
+	return cacheHashWrite
+}
+
+func GetFollowRead() string {
+	return cacheHashRead
 }

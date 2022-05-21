@@ -125,3 +125,13 @@ func RedisDeleteKey(k string) error {
 	}
 	return nil
 }
+
+//@author 执行各种无需返回值操作
+func RedisDo(action string, nums ...interface{}) error {
+	con := models.GetRec()
+	_, err := con.Do(action, nums)
+	if err != nil {
+		return err
+	}
+	return nil
+}
