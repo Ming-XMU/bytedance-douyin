@@ -3,7 +3,9 @@ package config
 import (
 	"douyin/controller"
 	"douyin/models"
+	"douyin/mq"
 	"douyin/services"
+	"fmt"
 	"gopkg.in/ini.v1"
 	"log"
 	"strings"
@@ -12,6 +14,7 @@ import (
 var (
 	MysqlPath string
 	RedisUrl  string
+	MQUrl     string
 )
 
 // Init
@@ -24,9 +27,14 @@ func Init() {
 	}
 	LoadMysql(file)
 	LoadRedis(file)
+	LoadRabbitMQ(file)
+	//开启mq监听
+	//mq.InitMQ(MQUrl)
+	//FollowQueueListen()
 	models.InitDB(MysqlPath)
 	models.InitRedis(RedisUrl)
 	initService()
+
 }
 
 // LoadMysql
@@ -37,7 +45,7 @@ func LoadMysql(file *ini.File) {
 	DbUser := file.Section("mysql").Key("DbUser").String()
 	DbPassword := file.Section("mysql").Key("DbPassword").String()
 	DbName := file.Section("mysql").Key("DbName").String()
-	MysqlPath = strings.Join([]string{DbUser, ":", DbPassword, "@tcp(", DbHost, ":", DbPort, ")/", DbName}, "")
+	MysqlPath = strings.Join([]string{DbUser, ":", DbPassword, "@tcp(", DbHost, ":", DbPort, ")/", DbName, "?charset=utf8&parseTime=True&loc=Local"}, "")
 }
 
 // LoadRedis
@@ -48,8 +56,34 @@ func LoadRedis(file *ini.File) {
 	RedisUrl = strings.Join([]string{"redis://", Host, ":", Port}, "")
 }
 
+// LoadRabbitMQ
+// 读取配置拼接mq连接路径
+func LoadRabbitMQ(file *ini.File) {
+	MqName := file.Section("rabbitmq").Key("MqName").String()
+	MqPassword := file.Section("rabbitmq").Key("MqPassword").String()
+	Host := file.Section("rabbitmq").Key("Host").String()
+	Port := file.Section("rabbitmq").Key("Port").String()
+	//VirtualHost := file.Section("rabbitmq").Key("VirtualHost").String()
+	MQUrl = strings.Join([]string{"amqp://", MqName, ":", MqPassword, "@", Host, ":", Port, "/"}, "")
+	fmt.Println(MQUrl)
+}
+
 // 初始化service
 func initService() {
 	controller.FeeSerivce = services.GetFeedService()
 	controller.UserSerivce = services.GetUserService()
+	controller.FollowSerivce = services.GetFollowService()
+}
+
+func FollowQueueListen() {
+	rabbitmq := mq.GetFollowMQ()
+	rabbitmq.ConsumeSimple(func(msg string) error {
+		//按字符_分割参数
+		arr := strings.Split(msg, "_")
+		err := controller.FollowSerivce.Action(arr[0], arr[1], arr[2])
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }

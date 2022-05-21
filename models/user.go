@@ -3,13 +3,12 @@ package models
 const TableNameUser string = "user"
 
 type User struct {
-	Id   int64
-	Name string
-	Pwd  string
-	Salt string
-	//关注和被关注应该是int吧
-	FollowCount   int64
-	FollowerCount int64
+	Id            int64  `gorm:"column:id";primaryKey`
+	Name          string `gorm:"column:name"`
+	Pwd           string `gorm:"column:pwd"`
+	Salt          string `gorm:"column:salt"`
+	FollowCount   int64  `gorm:"column:follow_count"`
+	FollowerCount int64  `gorm:"column:follower_count"`
 }
 
 func (*User) TableName() string {

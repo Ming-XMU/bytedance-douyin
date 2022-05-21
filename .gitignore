@@ -20,6 +20,8 @@ web/logs
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**
 !**/src/test/**
+## video img ###
+.public
 
 
 

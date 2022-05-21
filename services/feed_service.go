@@ -30,13 +30,21 @@ const (
 type FeedService interface {
 	//public video
 	PublishAction(c *gin.Context) error
+	CreatVideoList(user int) []models.VOVideo
+	GetAuthor(user, id int) (Author models.VOUser)
 }
 type FeedServiceImpl struct {
 	feedDao daos.FeedDao
 }
 
 func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
-	//TODO get user_id from token
+	//verify title
+	title := c.PostForm("title")
+	if tools.VerifyParamsEmpty(title) {
+		err = errors.New("title is empty..")
+		return
+	}
+	//get user id from token
 	token := c.PostForm("token")
 	tokenKey, err := tools.JwtParseTokenKey(token)
 	user, err := tools.RedisTokenKeyValue(tokenKey)
@@ -44,7 +52,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	file, err := c.FormFile("data")
 	//create play_url
 	filename := filepath.Base(file.Filename)
-	finalName := fmt.Sprintf("%s_%s", userId, filename)
+	finalName := fmt.Sprintf("%d_%s", userId, filename)
 	saveFile := filepath.Join("./public/video", finalName)
 	//create video
 	if err = c.SaveUploadedFile(file, saveFile); err != nil {
@@ -75,6 +83,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		CoverUrl:      coverUrl,
 		CommentCount:  0,
 		FavoriteCount: 0,
+		Title:         title,
 	}
 	_, err = f.feedDao.CreateFeed(video)
 	if err != nil {
@@ -107,25 +116,82 @@ func GetFeedService() FeedService {
 }
 
 //GetJsonFeeCache 获取redis中缓存的视频数据
-func GetJsonFeeCache() (VideoList []models.Video) {
+//author: wechan
+func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error) {
+	VideoList = make([]models.Video, 0, 31)
 	//连接redis
 	rec, err := redis.Dial("tcp", "120.78.238.68:6379")
 	if err != nil {
 		log.Println("redis dial failed,err:", err.Error())
-		//TODO 错误处理未完成
+		return nil, err
 	}
 	//从redis获取数据
 	videoCache, err := redis.Values(rec.Do("Lrange", "video_cache", 0, -1))
 	if err != nil {
 		log.Println("get redis video_cache failed,err:", err.Error())
-		//TODO 错误处理未完成
+		return nil, err
+	}
+	if videoCache == nil || len(videoCache) < 1 { //读不到redis数据
+		log.Println("video cache:", videoCache)
+		log.Println("redis no data")
+		return nil, err
 	}
 	//遍历数据反序列化
 	for _, val := range videoCache {
 		var video models.Video
-		json.Unmarshal(val.([]byte), &video)
+		err = json.Unmarshal(val.([]byte), &video)
 		VideoList = append(VideoList, video)
 	}
-	//
-	return VideoList
+	return VideoList, err
+}
+
+// CreatVideoList 获取视频流列表
+// author:wechan
+func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) {
+	videolist = make([]models.VOVideo, 0, 31)
+	var videoret models.VOVideo
+	videos, err := f.GetJsonFeeCache()
+	if err != nil || videos == nil {
+		//fmt.Println("create video list get redis cache failed,err:", err.Error())
+		//fmt.Println("len of video cache: ", len(videos))
+		return models.VODemoVideos //获取不到redis缓存数据，直接返回demovideos
+	}
+	for _, singlevideo := range videos {
+		videoret.Id = singlevideo.ID
+		videoret.CoverUrl = singlevideo.CoverUrl
+		videoret.PlayUrl = singlevideo.PlayUrl
+		videoret.CommentCount = singlevideo.CommentCount
+		videoret.FavoriteCount = singlevideo.FavoriteCount
+		videoret.Author = f.GetAuthor(user, int(singlevideo.UserId))
+		if user == 0 { //未登录用户，是否点赞即为默认值未点赞
+			videoret.IsFavorite = false
+		} else {
+			videoret.IsFavorite = GetFavoriteService().FavoriteJudge(user, int(singlevideo.ID))
+		}
+		videoret.Title = singlevideo.Title
+		videolist = append(videolist, videoret)
+	}
+	return videolist
+}
+
+func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
+	getuser, err := GetUserService().UserInfo(id)
+	if err != nil {
+		fmt.Println("get authors failed,err: ", err.Error())
+		return models.VODemoUser
+	}
+	Author.Id = getuser.Id
+	Author.Name = getuser.Name
+	Author.FollowCount = getuser.FollowCount
+	Author.FollowerCount = getuser.FollowerCount
+	if user == 0 { //未登录用户，关注即为默认值未关注
+		Author.IsFollow = false
+	} else { //user-登录用户id getuser.id-视频作者id，前后关系!
+		Author.IsFollow, err = daos.GetFollowDao().JudgeIsFollow(user, int(getuser.Id))
+		if err != nil {
+			log.Println("feed 数据库读取follow出错", err.Error())
+			Author.IsFollow = false //数据库读取follow出错时，使用默认值false
+		}
+	}
+	return Author
 }
