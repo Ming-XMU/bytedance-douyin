@@ -20,8 +20,7 @@ var (
 
 type FollowService interface {
 	Action(userId string, toUserId string, actionType string) error
-	FollowListCdRedis(userId string) error
-	FollowerListCdRedis(userId string) error
+	RedisAction(userId, toUserId, actionType string) error
 }
 type FollowServiceImpl struct {
 	followDao daos.FollowDao
@@ -74,9 +73,43 @@ func (f *FollowServiceImpl) Action(userId string, toUserId string, actionType st
 }
 
 //@author cwh
+//关注操作时，对redis的操作
+func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) error {
+	//查询对应缓存，没有便加载
+	err := f.followListCdRedis(userId)
+	_ = f.followerListCdRedis(toUserId)
+	if err != nil {
+		return errors.New("缓存错误！")
+	}
+
+	var action string
+	var add int
+	if actionType == "1" {
+		//关注操作，关注列表添加touserId，粉丝列表添加userId，粉丝数+1
+		action = "SADD"
+		add = 1
+	} else if actionType == "2" {
+		//取关操作，关注列表删除toUserId，粉丝列表删除userId，粉丝数-1
+		action = "SREM"
+		add = -1
+	} else {
+		return errors.New("操作类型错误！")
+	}
+	//用户关注列表更新
+	if tools.RedisDoKV(action, getFollowKey(userId), toUserId) != nil {
+		return errors.New("系统错误！，请稍后重试")
+	}
+	//被关注者，粉丝列表更新
+	followerKey := getFollowerKey(toUserId)
+	_ = tools.RedisDoKV(action, followerKey, userId)
+	_ = tools.RedisDoHash("HINCRBY", cacheHashWrite, followerKey, add)
+	return nil
+}
+
+//@author cwh
 //将用户的关注列表缓存进redis（无缓存的情况下）
-func (f *FollowServiceImpl) FollowListCdRedis(userId string) error {
-	followKey := GetFollowKey(userId)
+func (f *FollowServiceImpl) followListCdRedis(userId string) error {
+	followKey := getFollowKey(userId)
 	if !tools.RedisKeyExists(followKey) {
 		return tools.RedisKeyFlush(followKey)
 	}
@@ -96,8 +129,8 @@ func (f *FollowServiceImpl) FollowListCdRedis(userId string) error {
 
 //@author cwh
 //将用户的粉丝列表缓存进redis（无缓存的情况下）
-func (f *FollowServiceImpl) FollowerListCdRedis(userId string) error {
-	followerKey := GetFollowerKey(userId)
+func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
+	followerKey := getFollowerKey(userId)
 	if !tools.RedisKeyExists(followerKey) {
 		return tools.RedisKeyFlush(followerKey)
 	}
@@ -106,7 +139,7 @@ func (f *FollowServiceImpl) FollowerListCdRedis(userId string) error {
 	if err != nil {
 		return err
 	}
-	_ = tools.RedisDoKV("SADD", GetFollowWrite(), userId)
+	_ = tools.RedisDoHash("HSET", cacheHashWrite, followerKey, len(follower))
 	for _, value := range follower {
 		//sadd userId followId
 		_ = tools.RedisDoKV("SADD", followerKey, value.FollowId)
@@ -116,22 +149,14 @@ func (f *FollowServiceImpl) FollowerListCdRedis(userId string) error {
 	return nil
 }
 
-func ReHashKey() {
+func reHashKey() {
 	cacheHashWrite, cacheHashRead = cacheHashRead, cacheHashWrite
 }
 
-func GetFollowWrite() string {
-	return cacheHashWrite
-}
-
-func GetFollowRead() string {
-	return cacheHashRead
-}
-
-func GetFollowKey(userId string) string {
+func getFollowKey(userId string) string {
 	return strings.Join([]string{userId, "follow"}, "_")
 }
 
-func GetFollowerKey(userId string) string {
-	return strings.Join([]string{userId, "follow"}, "_")
+func getFollowerKey(userId string) string {
+	return strings.Join([]string{userId, "follower"}, "_")
 }

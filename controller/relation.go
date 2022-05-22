@@ -44,32 +44,14 @@ func RelationAction(c *gin.Context) {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "对应用户不存在！"})
 		return
 	}
-	//缓存查询，不存在便加载
-	err = services.GetFollowService().FollowListCdRedis(userId)
-	_ = services.GetFollowService().FollowerListCdRedis(toUserId)
-	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "缓存错误！"})
-		return
-	}
+
+	//redis缓存处理
 	actionType := c.Query("action_type")
-	var action string
-	if actionType == "1" {
-		//关注操作，redis缓存列表添加toUserId，对应toUserId添加一个关注
-		action = "SADD"
-	} else if actionType == "2" {
-		//取关操作，redis缓存列表添加toUserId，对应toUserId一个关注数
-		action = "SREM"
-	} else {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "操作类型错误！"})
+	redisErr := services.GetFollowService().RedisAction(userId, toUserId, actionType)
+	if redisErr != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: redisErr.Error()})
 		return
 	}
-	//用户关注列表更新
-	if tools.RedisDoKV(action, services.GetFollowKey(userId), toUserId) != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "系统错误！，请稍后重试"})
-		return
-	}
-	//被关注者，粉丝列表更新
-	_ = tools.RedisDoKV(action, services.GetFollowerKey(toUserId), userId)
 	//mq信息处理
 	rabbitmq := mq.GetFollowMQ()
 	msg := strings.Join([]string{userId, toUserId, actionType}, "_")
