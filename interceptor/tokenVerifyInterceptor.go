@@ -19,8 +19,8 @@ var (
 		//user
 		"/douyin/user/",
 		//feed
-		"/douyin/pub/action",
-		"/douyin/pub/list",
+		"/douyin/public/action",
+		"/douyin/public/list",
 		//favorite
 		"/douyin/favorite/action",
 		"/douyin/favorite/list",
@@ -37,8 +37,8 @@ var (
 		//user
 		"/douyin/user/": {},
 		//feed
-		"/douyin/pub/action/": {},
-		"/douyin/pub/list/":   {},
+		"/douyin/publish/action/": {},
+		"/douyin/publish/list/":   {},
 		//favorite
 		"/douyin/favorite/action/": {},
 		"/douyin/favorite/list/":   {},
@@ -84,12 +84,9 @@ func TokenVerifyVerifyInterceptor() gin.HandlerFunc {
 
 //different method get token
 func GetToken(context *gin.Context) string {
-	request := context.Request
-	switch request.Method {
-	case "GET":
-		return context.Query("token")
-	case "POST":
+	token := context.Query("token")
+	if tools.VerifyParamsEmpty(token){
 		return context.PostForm("token")
 	}
-	return ""
+	return token
 }

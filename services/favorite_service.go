@@ -6,6 +6,8 @@ import (
 	mq "douyin/mq"
 	"douyin/tools"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -24,7 +26,7 @@ func GetFavoriteService() FavoriteService {
 }
 
 type FavoriteService interface {
-	FavoriteAction(userId, videoId, acton int) error
+	FavoriteAction(userId int64, videoId int64, acton int) error
 	FavoriteJudge(userId, videoId int) bool
 }
 
@@ -36,16 +38,29 @@ type FavoriteServiceImpl struct {
 //@userId 用户id
 //@videoId 视频id
 //@action 1点赞，2取消
-func (f *FavoriteServiceImpl) FavoriteAction(userId, videoId, action int) error {
+func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action int) error {
 	favorite := &models.Favorite{
 		UserId:  userId,
 		VideoId: videoId,
 	}
 	//cache
 	if action == 1 {
-		tools.RedisCacheFavorite(favorite)
+		result, err := tools.RedisCacheFavorite(favorite)
+		if err != nil{
+			return err
+		}
+		if result == 2{
+			return errors.New("已经点赞过了")
+		}
 	} else if action == 2 {
-		tools.RedisCacheCancelFavorite(favorite)
+		result, err := tools.RedisCacheCancelFavorite(favorite)
+		if err != nil{
+			fmt.Println(err)
+			return err
+		}
+		if result == 2{
+			return errors.New("还没有进行点赞")
+		}
 	}
 	//send msg to mq
 	favoriteAction := &mq.FavoriteActionMsg{

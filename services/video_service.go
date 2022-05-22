@@ -11,7 +11,7 @@ var (
 )
 
 type VideoService interface {
-	VideoExist(id int) bool
+	VideoExist(id int64) bool
 }
 
 type VideoServiceImpl struct {
@@ -27,7 +27,7 @@ func GetVideoService() VideoService {
 	return videoService
 }
 
-func (v *VideoServiceImpl) VideoExist(id int) bool {
+func (v *VideoServiceImpl) VideoExist(id int64) bool {
 	_, err := v.videoDao.FindById(id)
 	if err != nil {
 		return false

@@ -3,8 +3,8 @@ package models
 const FavoriteTableName string = "favorite"
 
 type Favorite struct {
-	UserId  int `gorm:"column:user_id"`
-	VideoId int `gorm:"column:video_id"`
+	UserId  int64 `gorm:"column:user_id"`
+	VideoId int64 `gorm:"column:video_id"`
 }
 
 func (f *Favorite) TableName() string {

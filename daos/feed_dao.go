@@ -14,14 +14,14 @@ import (
 
 type FeedDao interface {
 	//create feed record
-	CreateFeed(video models.Video) (rowsAffected int64, err error)
+	CreateFeed(video *models.Video) (rowsAffected int64, err error)
 }
 type FeedDaoImpl struct {
 	db *gorm.DB
 }
 
-func (f *FeedDaoImpl) CreateFeed(video models.Video) (rowsAffected int64, err error) {
-	result := f.db.Create(&video)
+func (f *FeedDaoImpl) CreateFeed(video *models.Video) (rowsAffected int64, err error) {
+	result := f.db.Create(video)
 	return result.RowsAffected, result.Error
 }
 

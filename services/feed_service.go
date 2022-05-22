@@ -77,7 +77,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//Save Db
-	video := models.Video{
+	video := &models.Video{
 		UserId:        userId,
 		PlayUrl:       playUrl,
 		CoverUrl:      coverUrl,
@@ -92,7 +92,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//cache
-	err = tools.RedisCacheFeed(video)
+	err = tools.RedisCacheFeed(*video)
 	if err != nil {
 		fmt.Println("cache feed failed:", err.Error())
 		return
@@ -120,11 +120,7 @@ func GetFeedService() FeedService {
 func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error) {
 	VideoList = make([]models.Video, 0, 31)
 	//连接redis
-	rec, err := redis.Dial("tcp", "120.78.238.68:6379")
-	if err != nil {
-		log.Println("redis dial failed,err:", err.Error())
-		return nil, err
-	}
+	rec := models.GetRec()
 	//从redis获取数据
 	videoCache, err := redis.Values(rec.Do("Lrange", "video_cache", 0, -1))
 	if err != nil {

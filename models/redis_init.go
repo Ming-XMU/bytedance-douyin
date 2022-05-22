@@ -8,7 +8,9 @@ import (
 var pool *redis.Pool
 
 func GetRec() redis.Conn {
-	return pool.Get()
+	conn := pool.Get()
+	conn.Do("AUTH","douyin/123456")
+	return conn
 }
 
 func InitRedis(url string,pass string) {
@@ -21,7 +23,7 @@ func InitRedis(url string,pass string) {
 		IdleTimeout: time.Second * 100,
 		//定义拨号获得连接的函数
 		Dial: func() (redis.Conn, error) {
-			return redis.DialURL(url,redis.DialPassword(pass))
+			return redis.DialURL(url)
 		},
 	}
 	pool = redisPool
