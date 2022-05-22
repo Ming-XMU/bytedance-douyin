@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/models"
 	"douyin/mq"
 	"douyin/services"
 	"douyin/tools"
@@ -16,7 +17,7 @@ var (
 
 type UserListResponse struct {
 	Response
-	UserList []User `json:"user_list"`
+	UserList []models.UserMessage `json:"user_list"`
 }
 
 //@author cwh
@@ -71,7 +72,7 @@ func FollowList(c *gin.Context) {
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: []User{DemoUser},
+		UserList: []models.UserMessage{DemoUser},
 	})
 }
 
@@ -81,6 +82,6 @@ func FollowerList(c *gin.Context) {
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: []User{DemoUser},
+		UserList: []models.UserMessage{DemoUser},
 	})
 }

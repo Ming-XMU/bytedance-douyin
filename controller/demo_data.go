@@ -1,5 +1,7 @@
 package controller
 
+import "douyin/models"
+
 var DemoVideos = []Video{
 	{
 		Id:            1,
@@ -21,7 +23,7 @@ var DemoComments = []Comment{
 	},
 }
 
-var DemoUser = User{
+var DemoUser = models.UserMessage{
 	Id:            1,
 	Name:          "TestUser",
 	FollowCount:   0,

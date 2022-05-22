@@ -21,10 +21,10 @@ func FavoriteAction(c *gin.Context) {
 		return
 	}
 	//参数处理，3个参数转为int，检查videoId是否存在
-	videoId, e2 := strconv.ParseInt(c.Query("video_id"),10,64)
+	videoId, e2 := strconv.ParseInt(c.Query("video_id"), 10, 64)
 	exist := services.GetVideoService().VideoExist(videoId)
 	actionType, e3 := strconv.Atoi(c.Query("action_type"))
-	if  e2 != nil || e3 != nil || (actionType != 1 && actionType != 2) || !exist {
+	if e2 != nil || e3 != nil || (actionType != 1 && actionType != 2) || !exist {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "参数错误！"})
 		return
 	}

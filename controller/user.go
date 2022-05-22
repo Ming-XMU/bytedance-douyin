@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/models"
 	"douyin/services"
 	"douyin/tools"
 	"github.com/gin-gonic/gin"
@@ -22,13 +23,13 @@ type UserLoginResponse struct {
 
 type UserResponse struct {
 	Response
-	User User `json:"user"`
+	User models.UserMessage `json:"user"`
 }
 
 // usersLoginInfo use map to store user info, and key is username+password for demo
 // user data will be cleared every time the server starts
 // test data: username=zhanglei, password=douyin
-var usersLoginInfo = map[string]User{
+var usersLoginInfo = map[string]models.UserMessage{
 	"root123456": {
 		Id:            1,
 		Name:          "root",
@@ -124,15 +125,14 @@ func Login(c *gin.Context) {
 //根据id获取用户信息
 //缺失是否关注的查询
 func UserInfo(c *gin.Context) {
-	/* 这个接口应该不用鉴权，先注释掉
-	token := c.Query("token")
-	if tools.VeifyToken(token) != nil {
+	token, err := tools.VeifyToken(c.Query("token"))
+	if err != nil {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 0, StatusMsg: "请先登录！"},
+			Response: Response{StatusCode: 1, StatusMsg: "请先登录"},
 		})
 		return
-	}*/
-	//转换id类型
+	}
+	//id获取
 	id := c.Query("user_id")
 	//调用service进行查询
 	if user, err := services.GetUserService().UserInfo(id); err != nil {
@@ -142,13 +142,7 @@ func UserInfo(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "获取用户信息成功！"},
-			User: User{
-				Id:            user.Id,
-				Name:          user.Name,
-				FollowCount:   user.FollowCount,
-				FollowerCount: user.FollowerCount,
-				IsFollow:      false,
-			},
+			User:     services.GetFollowService().UserFollowInfo(user, strconv.FormatInt(token.UserId, 10)),
 		})
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"log"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 )
 import "douyin/daos"
@@ -171,7 +172,7 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 }
 
 func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
-	getuser, err := GetUserService().UserInfo(id)
+	getuser, err := GetUserService().UserInfo(strconv.Itoa(id))
 	if err != nil {
 		fmt.Println("get authors failed,err: ", err.Error())
 		return models.VODemoUser

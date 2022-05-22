@@ -5,9 +5,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
-var(
+
+var (
 	FeeSerivce services.FeedService
 )
+
 type VideoListResponse struct {
 	Response
 	VideoList []Video `json:"video_list"`

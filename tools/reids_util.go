@@ -149,6 +149,14 @@ func RedisDoHash(action string, name, key, value interface{}) error {
 }
 
 //@author cwh
+//redis操作，切片传值，啥都可以做
+func RedisDo(action string, values ...interface{}) (reply interface{}, err error) {
+	con := models.GetRec()
+	do, err := con.Do(action, values...)
+	return do, err
+}
+
+//@author cwh
 //key存在判断
 func RedisKeyExists(key interface{}) bool {
 	con := models.GetRec()

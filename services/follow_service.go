@@ -14,13 +14,17 @@ var (
 	followService     FollowService
 	followServiceOnce sync.Once
 	//管理redis中关注数的hash名
-	cacheHashRead  = "follow_hash_one" //写入使用的变量
-	cacheHashWrite = "follow_hash_two" //读出使用的变量
+	followRead  = "follow_hash_one" //读出使用的变量
+	followWrite = "follow_hash_two" //写入使用的变量
+	//管理redis中粉丝数的hash名
+	followerRead  = "follower_hash_one" //读出使用的变量
+	followerWrite = "follower_hash_two" //写入使用的变量
 )
 
 type FollowService interface {
 	Action(userId string, toUserId string, actionType string) error
 	RedisAction(userId, toUserId, actionType string) error
+	UserFollowInfo(find *models.User, userId string) models.UserMessage
 }
 type FollowServiceImpl struct {
 	followDao daos.FollowDao
@@ -102,7 +106,9 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 	//被关注者，粉丝列表更新
 	followerKey := getFollowerKey(toUserId)
 	_ = tools.RedisDoKV(action, followerKey, userId)
-	_ = tools.RedisDoHash("HINCRBY", cacheHashWrite, followerKey, add)
+	//关注者关注数+1，被关注者粉丝数+1
+	_ = tools.RedisDoHash("HINCRBY", followWrite, userId, add)
+	_ = tools.RedisDoHash("HINCRBY", followerWrite, toUserId, add)
 	return nil
 }
 
@@ -139,7 +145,7 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 	if err != nil {
 		return err
 	}
-	_ = tools.RedisDoHash("HSET", cacheHashWrite, followerKey, len(follower))
+	_ = tools.RedisDoHash("HSET", followWrite, followerKey, len(follower))
 	for _, value := range follower {
 		//sadd userId followId
 		_ = tools.RedisDoKV("SADD", followerKey, value.FollowId)
@@ -149,8 +155,38 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 	return nil
 }
 
+//@author cwh
+//更新user的关注信息，（如果缓存有）
+func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) models.UserMessage {
+	//刷新自己的关注列表
+	_ = f.followListCdRedis(userId)
+	//构建返回
+	res := models.UserMessage{
+		Id:   find.Id,
+		Name: find.Name,
+	}
+	//查询是否关注
+	do, _ := tools.RedisDo("sismember", getFollowKey(userId), find.Id)
+	if do == 1 {
+		res.IsFollow = true
+	}
+	//查询对方的关注数
+	do, _ = tools.RedisDo("hget", followerWrite, find.Id)
+	if do != nil {
+		//有缓存时更新，当0是真实值，更不更新一样
+		res.FollowCount = do.(int64)
+	}
+	//查询对方粉丝数
+	do, _ = tools.RedisDo("hget", followerWrite, find.Id)
+	if do != nil {
+		res.FollowerCount = do.(int64)
+	}
+	return res
+}
+
 func reHashKey() {
-	cacheHashWrite, cacheHashRead = cacheHashRead, cacheHashWrite
+	followWrite, followRead = followRead, followWrite
+	followerWrite, followerRead = followerRead, followerWrite
 }
 
 func getFollowKey(userId string) string {
