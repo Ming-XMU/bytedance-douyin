@@ -6,6 +6,7 @@ import (
 	"douyin/tools"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 )
 
@@ -17,7 +18,7 @@ var (
 type UserService interface {
 	UserLogin(username string, password string) (*models.User, error)
 	UserRegist(username string, password string, userId int64, salt string) error
-	UserInfo(id int) (*models.User, error)
+	UserInfo(id string) (*models.User, error)
 	FindLastUserId() int64
 }
 type UserServiceImpl struct {
@@ -82,10 +83,10 @@ func (u *UserServiceImpl) FindLastUserId() int64 {
 
 //@author cwh
 //根据id查询对应的对象
-func (u *UserServiceImpl) UserInfo(userId int) (*models.User, error) {
-	user, err := u.userDao.FindById(userId)
+func (u *UserServiceImpl) UserInfo(userId string) (*models.User, error) {
+	id, err := strconv.Atoi(userId)
 	if err != nil {
-		return nil, errors.New("userinfo cannot find user")
+		return nil, err
 	}
-	return user, nil
+	return u.userDao.FindById(id)
 }

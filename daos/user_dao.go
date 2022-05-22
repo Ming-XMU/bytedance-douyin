@@ -19,6 +19,7 @@ type UserDao interface {
 	FindByName(name string) (*models.User, error)
 	LastId() int64
 	FindById(id int) (*models.User, error)
+	FindListByIds(ids []int) ([]models.User, error)
 }
 type UserDaoImpl struct {
 	db  *gorm.DB
@@ -76,4 +77,14 @@ func (u *UserDaoImpl) FindById(id int) (*models.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (u *UserDaoImpl) FindListByIds(ids []int) ([]models.User, error) {
+	var res []models.User
+	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count").
+		Where("id IN ?", ids).Find(&res).Error
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }

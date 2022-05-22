@@ -74,7 +74,7 @@ func Register(c *gin.Context) {
 		})
 	} else {
 		//成功注册
-		user, err2 := services.GetUserService().UserInfo(int(userIdSequence))
+		user, err2 := services.GetUserService().UserInfo(strconv.FormatInt(userIdSequence, 10))
 		if err2 != nil {
 			c.JSON(http.StatusOK, UserLoginResponse{
 				Response: Response{StatusCode: 1, StatusMsg: err2.Error()},
@@ -133,13 +133,7 @@ func UserInfo(c *gin.Context) {
 		return
 	}*/
 	//转换id类型
-	id, parse := strconv.Atoi(c.Query("user_id"))
-	if parse != nil {
-		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 0, StatusMsg: "参数类型错误！"},
-		})
-		return
-	}
+	id := c.Query("user_id")
 	//调用service进行查询
 	if user, err := services.GetUserService().UserInfo(id); err != nil {
 		c.JSON(http.StatusOK, UserResponse{
