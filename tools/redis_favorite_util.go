@@ -14,9 +14,9 @@ import (
 var (
 	//video favorite cache
 	DefaultVideoFavoriteCaches = map[int64]string{
-		0 : "video_cache_0",
-		1 : "video_cache_1",
-		2 : "video_cache_2",
+		0 : "video_cache_favorite_0",
+		1 : "video_cache_favorite_1",
+		2 : "video_cache_favorite_2",
 	}
 	//Video Favorite Caches Length
 	DefaultVideoFavoriteCacheLength int64 = 3;

@@ -92,7 +92,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//cache
-	err = tools.RedisCacheFeed(*video)
+	err = tools.RedisCacheFeed(video)
 	if err != nil {
 		fmt.Println("cache feed failed:", err.Error())
 		return
@@ -171,7 +171,7 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 }
 
 func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
-	getuser, err := GetUserService().UserInfo(id)
+	getuser, err := GetUserService().UserInfo(string(id))
 	if err != nil {
 		fmt.Println("get authors failed,err: ", err.Error())
 		return models.VODemoUser
