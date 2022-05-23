@@ -159,7 +159,7 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 }
 
 //@author cwh
-//更新user的关注信息，（如果缓存有）
+//更新user的关注信息，返回前端需求的格式
 func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) *models.UserMessage {
 	//刷新自己的关注列表
 	_ = f.followListCdRedis(userId)
@@ -211,14 +211,14 @@ func (f *FollowServiceImpl) UserFollowList(userId string) ([]models.UserMessage,
 	}
 	//将user包装成userMessage
 	res := make([]models.UserMessage, len(finds))
-	for _, find := range finds {
+	for i, find := range finds {
 		message := models.UserMessage{
 			Id:       find.Id,
 			Name:     find.Name,
 			IsFollow: true,
 		}
 		f.setMessageCount(find.Id, &message)
-		res = append(res, message)
+		res[i] = message
 	}
 	return res, nil
 }
@@ -241,8 +241,8 @@ func (f *FollowServiceImpl) UserFollowerList(userId string) ([]models.UserMessag
 	}
 	//将user包装成userMessage
 	res := make([]models.UserMessage, len(finds))
-	for _, find := range finds {
-		res = append(res, *f.UserFollowInfo(&find, userId))
+	for i, find := range finds {
+		res[i] = *f.UserFollowInfo(&find, userId)
 	}
 	return res, nil
 }

@@ -53,16 +53,19 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "用户注册信息过长"},
 		})
+		return
 	}
 	if len(username) == 0 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "账号为空"},
 		})
+		return
 	}
 	if len(pwd) == 0 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "密码为空"},
 		})
+		return
 	}
 	//更新用户ID
 	userIdSequence = services.GetUserService().FindLastUserId()

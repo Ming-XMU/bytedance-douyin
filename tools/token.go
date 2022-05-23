@@ -42,7 +42,7 @@ func CreateToken(user *models.User) (string, error) {
 		return "", err
 	}
 	tokenKey := LoginTokenKey + uuid.String()
-	fmt.Println(tokenKey)
+	fmt.Println("key:" + tokenKey)
 	issuedTime := time.Now().Unix()
 	//设置过期时间
 	t := fmt.Sprintf("%dm", DefaultExpirationTime/60)

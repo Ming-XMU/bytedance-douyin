@@ -85,6 +85,7 @@ func FollowList(c *gin.Context) {
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
+			StatusMsg:  "查询成功",
 		},
 		UserList: list,
 	})
@@ -111,6 +112,7 @@ func FollowerList(c *gin.Context) {
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
+			StatusMsg:  "查询成功",
 		},
 		UserList: list,
 	})
