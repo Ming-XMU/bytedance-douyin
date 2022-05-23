@@ -93,7 +93,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//cache
-	err = tools.RedisCacheFeed(*video)
+	err = tools.RedisCacheFeed(video)
 	if err != nil {
 		fmt.Println("cache feed failed:", err.Error())
 		return

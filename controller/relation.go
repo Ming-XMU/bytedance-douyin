@@ -65,23 +65,53 @@ func RelationAction(c *gin.Context) {
 }
 
 //@author cwh
-//获取关注列表
+//获取关注列表用户
 // FollowList all users have same follow list
 func FollowList(c *gin.Context) {
+	//获取token
+	token := c.Query("token")
+	_, err := tools.VeifyToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "请先登录"})
+		return
+	}
+	//交给service层查询关注列表
+	list, err := services.GetFollowService().UserFollowList(c.Query("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "查询错误！"})
+		return
+	}
+	//正常返回
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: []models.UserMessage{DemoUser},
+		UserList: list,
 	})
 }
 
+//@author cwh
+//获取用户的粉丝列表
 // FollowerList all users have same follower list
 func FollowerList(c *gin.Context) {
+	//获取token
+	token := c.Query("token")
+	_, err := tools.VeifyToken(token)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "请先登录"})
+		return
+	}
+	//交给service层查询关注列表
+	list, err := services.GetFollowService().UserFollowerList(c.Query("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "查询错误！"})
+		return
+	}
+	//正常返回
 	c.JSON(http.StatusOK, UserListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		UserList: []models.UserMessage{DemoUser},
+		UserList: list,
 	})
 }

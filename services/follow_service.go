@@ -5,6 +5,7 @@ import (
 	"douyin/models"
 	"douyin/tools"
 	"errors"
+	"github.com/gomodule/redigo/redis"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,7 +25,9 @@ var (
 type FollowService interface {
 	Action(userId string, toUserId string, actionType string) error
 	RedisAction(userId, toUserId, actionType string) error
-	UserFollowInfo(find *models.User, userId string) models.UserMessage
+	UserFollowInfo(find *models.User, userId string) *models.UserMessage
+	UserFollowList(userId string) ([]models.UserMessage, error)
+	UserFollowerList(userId string) ([]models.UserMessage, error)
 }
 type FollowServiceImpl struct {
 	followDao daos.FollowDao
@@ -116,7 +119,7 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 //将用户的关注列表缓存进redis（无缓存的情况下）
 func (f *FollowServiceImpl) followListCdRedis(userId string) error {
 	followKey := getFollowKey(userId)
-	if !tools.RedisKeyExists(followKey) {
+	if tools.RedisKeyExists(followKey) {
 		return tools.RedisKeyFlush(followKey)
 	}
 	id, _ := strconv.Atoi(userId)
@@ -126,7 +129,7 @@ func (f *FollowServiceImpl) followListCdRedis(userId string) error {
 	}
 	for _, value := range follows {
 		//sadd userId followId
-		_ = tools.RedisDoKV("SADD", followKey, value.FollowId)
+		_ = tools.RedisDoKV("SADD", followKey, value)
 	}
 	//设置半小时有效期
 	_ = tools.RedisDoKV("EXPIRE", followKey, 1800)
@@ -137,18 +140,18 @@ func (f *FollowServiceImpl) followListCdRedis(userId string) error {
 //将用户的粉丝列表缓存进redis（无缓存的情况下）
 func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 	followerKey := getFollowerKey(userId)
-	if !tools.RedisKeyExists(followerKey) {
+	if tools.RedisKeyExists(followerKey) {
 		return tools.RedisKeyFlush(followerKey)
 	}
 	id, _ := strconv.Atoi(userId)
-	follower, err := f.followDao.UserFollow(id)
+	follower, err := f.followDao.UserFollower(id)
 	if err != nil {
 		return err
 	}
 	_ = tools.RedisDoHash("HSET", followWrite, followerKey, len(follower))
 	for _, value := range follower {
 		//sadd userId followId
-		_ = tools.RedisDoKV("SADD", followerKey, value.FollowId)
+		_ = tools.RedisDoKV("SADD", followerKey, value)
 	}
 	//设置半小时有效期
 	_ = tools.RedisDoKV("EXPIRE", followerKey, 1800)
@@ -157,7 +160,7 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 
 //@author cwh
 //更新user的关注信息，（如果缓存有）
-func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) models.UserMessage {
+func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) *models.UserMessage {
 	//刷新自己的关注列表
 	_ = f.followListCdRedis(userId)
 	//构建返回
@@ -170,18 +173,78 @@ func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) mod
 	if do == 1 {
 		res.IsFollow = true
 	}
+	f.setMessageCount(find.Id, &res)
+	return &res
+}
+
+//@author cwh
+//用户信息关注数和粉丝数的查询
+func (f *FollowServiceImpl) setMessageCount(userId int64, message *models.UserMessage) {
 	//查询对方的关注数
-	do, _ = tools.RedisDo("hget", followerWrite, find.Id)
+	do, _ := tools.RedisDo("hget", followWrite, userId)
 	if do != nil {
 		//有缓存时更新，当0是真实值，更不更新一样
-		res.FollowCount = do.(int64)
+		message.FollowCount = do.(int64)
 	}
 	//查询对方粉丝数
-	do, _ = tools.RedisDo("hget", followerWrite, find.Id)
+	do, _ = tools.RedisDo("hget", followerWrite, userId)
 	if do != nil {
-		res.FollowerCount = do.(int64)
+		message.FollowerCount = do.(int64)
 	}
-	return res
+}
+
+//@author cwh
+//查询用户的关注列表信息
+func (f *FollowServiceImpl) UserFollowList(userId string) ([]models.UserMessage, error) {
+	//缓存处理，是否加载
+	err := f.followListCdRedis(userId)
+	if err != nil {
+		return nil, err
+	}
+	//查询缓存的关注列表
+	do, _ := tools.RedisDo("smembers", getFollowKey(userId))
+	ids, _ := redis.Ints(do, nil)
+	//查询对应的user
+	finds, err := daos.GetUserDao().FindListByIds(ids)
+	if err != nil {
+		return nil, err
+	}
+	//将user包装成userMessage
+	res := make([]models.UserMessage, len(finds))
+	for _, find := range finds {
+		message := models.UserMessage{
+			Id:       find.Id,
+			Name:     find.Name,
+			IsFollow: true,
+		}
+		f.setMessageCount(find.Id, &message)
+		res = append(res, message)
+	}
+	return res, nil
+}
+
+//@author cwh
+//查询用户的粉丝列表信息
+func (f *FollowServiceImpl) UserFollowerList(userId string) ([]models.UserMessage, error) {
+	//缓存处理，是否加载
+	err := f.followerListCdRedis(userId)
+	if err != nil {
+		return nil, err
+	}
+	//查询缓存的粉丝列表
+	do, _ := tools.RedisDo("smembers", getFollowerKey(userId))
+	ids, _ := redis.Ints(do, nil)
+	//查询对应的user
+	finds, err := daos.GetUserDao().FindListByIds(ids)
+	if err != nil {
+		return nil, err
+	}
+	//将user包装成userMessage
+	res := make([]models.UserMessage, len(finds))
+	for _, find := range finds {
+		res = append(res, *f.UserFollowInfo(&find, userId))
+	}
+	return res, nil
 }
 
 func reHashKey() {

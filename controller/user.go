@@ -142,7 +142,7 @@ func UserInfo(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "获取用户信息成功！"},
-			User:     services.GetFollowService().UserFollowInfo(user, strconv.FormatInt(token.UserId, 10)),
+			User:     *services.GetFollowService().UserFollowInfo(user, strconv.FormatInt(token.UserId, 10)),
 		})
 	}
 }
