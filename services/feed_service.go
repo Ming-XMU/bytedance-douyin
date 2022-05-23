@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -26,6 +27,9 @@ const (
 	//producing: /root/douyin/video/  /root/douyin/img
 	Play_Url_Path  = "D:/goProject/src/simple-demo/public/video/"
 	Cover_Url_Path = "D:/goProject/src/simple-demo/public/img/"
+	//TODO 上线修改为服务器的IP地址和端口
+	Show_Play_Url_Prefix = "http://localhost:8080/static/video/"
+	Show_Cover_Url_Prefix = "http://localhost:8080/static/img/"
 )
 
 type FeedService interface {
@@ -67,21 +71,26 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//Create CoverUrl
 	//cmd format :ffmpeg -i  1_mmexport1652668404330.mp4 -ss 00:00:00 -frames:v 1 out.jpg
 	coverFile := finalName + ".jpg"
-	playUrl := Play_Url_Path + finalName
-	coverUrl := Cover_Url_Path + coverFile
-	cmd := exec.Command("ffmpeg", "-i", playUrl, "-ss", "00:00:00", "-frames:v", "1", coverUrl)
+	playLocalUrl := Play_Url_Path + finalName
+	coverLocalUrl := Cover_Url_Path + coverFile
+	cmd := exec.Command("ffmpeg", "-i", playLocalUrl, "-ss", "00:00:00", "-frames:v", "1", coverLocalUrl)
 	err = cmd.Run()
 	if err != nil {
 		//TODO log format
 		fmt.Println("create cover failed:", err.Error())
+		//del file
+		err = os.Remove(saveFile)
+		if err != nil{
+			fmt.Println("file remove failed...")
+		}
 		err = errors.New("create cover failed..")
 		return
 	}
 	//Save Db
 	video := &models.Video{
 		UserId:        userId,
-		PlayUrl:       playUrl,
-		CoverUrl:      coverUrl,
+		PlayUrl:       Show_Play_Url_Prefix + finalName,
+		CoverUrl:      Show_Cover_Url_Prefix + coverFile,
 		CommentCount:  0,
 		FavoriteCount: 0,
 		Title:         title,
@@ -93,7 +102,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//cache
-	err = tools.RedisCacheFeed(*video)
+	err = tools.RedisCacheFeed(video)
 	if err != nil {
 		fmt.Println("cache feed failed:", err.Error())
 		return

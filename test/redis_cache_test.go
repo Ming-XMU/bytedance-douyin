@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 )
 
 /**
@@ -19,7 +20,10 @@ import (
 func TestJsonFeeCache(t *testing.T){
 
 	rec, err := redis.Dial("tcp","120.78.238.68:6379")
-	result, err := redis.Values(rec.Do("Lrange", "video_cache", 0, -1))
+	rec.Do("AUTH","douyin/123456")
+	//时间戳进行限制创建时间
+	unix := time.Now().Unix()
+	result, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set",  unix,0,"limit",0,29))
 	if err != nil{
 		fmt.Println(err)
 		return
