@@ -23,6 +23,8 @@ type FollowDao interface {
 	JudgeIsFollow(followId, followerId int) (is bool, err error)
 	UserFollow(userId int) ([]int, error)
 	UserFollower(userId int) ([]int, error)
+	UpdateUserFollowCount(userId int, followCount int) error
+	UpdateUserFollowerCount(userId int, followerCount int) error
 }
 
 type FollowDaoImpl struct {
@@ -100,4 +102,12 @@ func (f *FollowDaoImpl) UserFollower(userId int) ([]int, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func (f *FollowDaoImpl) UpdateUserFollowCount(userId int, followCount int) error {
+	return f.db.Model(&models.User{}).Where("id = ?", userId).Update("follow_count", followCount).Error
+}
+
+func (f *FollowDaoImpl) UpdateUserFollowerCount(userId int, followerCount int) error {
+	return f.db.Model(&models.User{}).Where("id = ?", userId).Update("follower_count", followerCount).Error
 }
