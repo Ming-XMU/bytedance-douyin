@@ -37,6 +37,9 @@ type FeedService interface {
 	PublishAction(c *gin.Context) error
 	CreatVideoList(user int) []models.VOVideo
 	GetAuthor(user, id int) (Author models.VOUser)
+	//flush redis favourite
+	FlushRedisFavouriteActionCache(videoId int64,count int)error
+	FlushRedisFavouriteCount()
 }
 type FeedServiceImpl struct {
 	feedDao daos.FeedDao
@@ -108,6 +111,10 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	return
+}
+
+func(f *FeedServiceImpl)FlushRedisFavouriteActionCache(videoId int64,count int) error{
+	return f.feedDao.UpdateVideoFavoriteCount(videoId,count)
 }
 
 //single create
@@ -200,4 +207,33 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 		}
 	}
 	return Author
+}
+
+//flush redis favourite cache
+func (f *FeedServiceImpl)FlushRedisFavouriteCount(){
+	for _,cacheName := range tools.DefaultVideoCacheList {
+		kv, err := tools.GetAllKV(cacheName)
+		if err != nil{
+			fmt.Println("flush error occured,cacheName :" ,cacheName)
+		}
+		for k,v := range kv {
+			//parse int
+			videoId ,err:= strconv.ParseInt(k,10,64)
+			if err != nil{
+				//TODO 出现局部出错
+				continue
+			}
+			count,err := strconv.Atoi(v)
+			if err != nil{
+				//TODO 出现局部出错
+				continue
+			}
+			err = f.FlushRedisFavouriteActionCache(videoId, count)
+			if err != nil{
+				//TODO 出现局部出错
+				continue
+			}
+		}
+	}
+
 }

@@ -2,8 +2,10 @@ package tools
 
 import (
 	"douyin/models"
+	"errors"
 	"github.com/gomodule/redigo/redis"
 	"strconv"
+	"strings"
 )
 
 /**
@@ -18,6 +20,7 @@ var (
 		1 : "video_cache_favorite_1",
 		2 : "video_cache_favorite_2",
 	}
+	DefaultVideoCacheList = []string{"video_cache_favorite_0","video_cache_favorite_1","video_cache_favorite_2"}
 	//Video Favorite Caches Length
 	DefaultVideoFavoriteCacheLength int64 = 3;
 	//User Favorite Video Cache prefix
@@ -30,13 +33,14 @@ func RedisCacheFavorite(favorite *models.Favorite) (interface{},error){
 	key := hashKey(favorite.VideoId)
 	//get cache name
 	cacheName := DefaultVideoFavoriteCaches[key]
-	favoriteVideoName := packageUserFavoriteCacheName(favorite.UserId)
+	favoriteVideoName := PackageUserFavoriteCacheName(favorite.UserId)
 	luaScript := "if redis.call(\"SISMEMBER\",KEYS[3],KEYS[2]) == 1 then\n    return 2" +
 		"\nelse\n    redis.call(\"SADD\",KEYS[3],KEYS[2])\n    " +
 		"if redis.call(\"EXISTS\",KEYS[1]) == 0 or redis.call(\"HEXISTS\",KEYS[1],KEYS[2]) == 0 " +
 		"then\n    \tredis.call(\"HSET\",KEYS[1],KEYS[2],1)\n        " +
 		"return 1\n\telse\n    \tredis.call(\"HINCRBY\",KEYS[1],KEYS[2],1)\n    \treturn 1\n\tend\nend"
 	conn := models.GetRec()
+	defer conn.Close()
 	script := redis.NewScript(3, luaScript)
 	return script.Do(conn, cacheName, favorite.VideoId,favoriteVideoName)
 }
@@ -47,13 +51,14 @@ func RedisCacheCancelFavorite(favorite *models.Favorite)(interface{},error){
 	key := hashKey(favorite.VideoId)
 	//get cache name
 	cacheName := DefaultVideoFavoriteCaches[key]
-	favoriteVideoName := packageUserFavoriteCacheName(favorite.UserId)
+	favoriteVideoName := PackageUserFavoriteCacheName(favorite.UserId)
 	luaScript := "if redis.call(\"SISMEMBER\",KEYS[3],KEYS[2]) == 0 then\n    return 2" +
 		"\nelse\n    redis.call(\"SREM\",KEYS[3],KEYS[2])\n    " +
 		"if redis.call(\"EXISTS\",KEYS[1]) == 0 or redis.call(\"HEXISTS\",KEYS[1],KEYS[2]) == 0 " +
 		"then\n    \tredis.call(\"HSET\",KEYS[1],KEYS[2],-1)\n        " +
 		"return 1\n\telse\n    \tredis.call(\"HINCRBY\",KEYS[1],KEYS[2],-1)\n   \t\treturn 1\n    end\nend"
 	conn := models.GetRec()
+	defer conn.Close()
 	script := redis.NewScript(3, luaScript)
 	return script.Do(conn, cacheName, favorite.VideoId,favoriteVideoName)
 }
@@ -62,7 +67,19 @@ func hashKey(videoId int64)int64{
 	return videoId % DefaultVideoFavoriteCacheLength
 }
 //get user favorite video cache name
-func packageUserFavoriteCacheName(userId int64) string{
+func PackageUserFavoriteCacheName(userId int64) string{
 	formatUserId := strconv.FormatInt(userId, 10)
 	return DefaultUserFavoriteVideoCachePrefix + formatUserId
+}
+
+//get userid from cacheName
+func UnPackUserFavoriteCacheName(cacheName string) (userid int64,err error){
+	split := strings.Split(cacheName, ":")
+	if len(split) < 2{
+		err = errors.New("cacheName is not corrept")
+		return
+	}
+	str := split[1]
+	userid, err = strconv.ParseInt(str, 10, 64)
+	return
 }
