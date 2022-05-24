@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
-	"github.com/robfig/cron"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,6 +29,7 @@ type FollowService interface {
 	UserFollowInfo(find *models.User, userId string) *models.UserMessage
 	UserFollowList(userId string) ([]models.UserMessage, error)
 	UserFollowerList(userId string) ([]models.UserMessage, error)
+	FollowUpdate()
 }
 type FollowServiceImpl struct {
 	followDao daos.FollowDao
@@ -98,7 +98,7 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 
 	//查询是否关注了
 	do, err := tools.RedisDo("sismember", followKey, toUserId)
-	exists := do.(int)
+	exists := do.(int64)
 
 	var action string
 	var add int
@@ -120,6 +120,7 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 	//被关注者，粉丝列表更新
 	_ = tools.RedisDoKV(action, followerKey, userId)
 	//关注者关注数+1，被关注者粉丝数+1
+	fmt.Printf("userId = %s, add = %d", userId, add)
 	_ = tools.RedisDoHash("HINCRBY", followWrite, userId, add)
 	_ = tools.RedisDoHash("HINCRBY", followerWrite, toUserId, add)
 	return nil
@@ -137,6 +138,7 @@ func (f *FollowServiceImpl) followListCdRedis(userId string) error {
 	if err != nil {
 		return err
 	}
+	_ = tools.RedisDoHash("HSET", followWrite, userId, len(follows))
 	for _, value := range follows {
 		//sadd userId followId
 		_ = tools.RedisDoKV("SADD", followKey, value)
@@ -158,7 +160,7 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 	if err != nil {
 		return err
 	}
-	_ = tools.RedisDoHash("HSET", followWrite, followerKey, len(follower))
+	_ = tools.RedisDoHash("HSET", followerWrite, userId, len(follower))
 	for _, value := range follower {
 		//sadd userId followId
 		_ = tools.RedisDoKV("SADD", followerKey, value)
@@ -191,15 +193,15 @@ func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) *mo
 //用户信息关注数和粉丝数的查询
 func (f *FollowServiceImpl) setMessageCount(userId int64, message *models.UserMessage) {
 	//查询对方的关注数
-	do, _ := tools.RedisDo("hget", followWrite, userId)
+	do, err := tools.RedisDo("hget", followWrite, userId)
 	if do != nil {
 		//有缓存时更新，当0是真实值，更不更新一样
-		message.FollowCount = do.(int64)
+		message.FollowCount, _ = redis.Int64(do, err)
 	}
 	//查询对方粉丝数
 	do, _ = tools.RedisDo("hget", followerWrite, userId)
 	if do != nil {
-		message.FollowerCount = do.(int64)
+		message.FollowerCount, _ = redis.Int64(do, err)
 	}
 }
 
@@ -270,11 +272,11 @@ func getFollowerKey(userId string) string {
 	return strings.Join([]string{userId, "follower"}, "_")
 }
 
-// followUpdate
+// FollowUpdate
 // @author zia
 // @Description: 定时缓存写回mysql
 // @return error
-func followUpdate() {
+func (f *FollowServiceImpl) FollowUpdate() {
 	//重置读写hash键
 	ReHashKey()
 	follow, follower := GetHashRead()
@@ -331,25 +333,6 @@ func ParseIdAndCount(k string, v string) (userId int, count int, err error) {
 		return
 	}
 	return
-}
-
-// TaskFollowStart
-// @author zia
-// @Description: 启动定时任务 | 每分钟更新一次
-func TaskFollowStart() {
-	//启动协程执行定时任务
-	go func() {
-		c := cron.New() // 新建一个定时任务对象
-		//err := c.AddFunc("0 */1 * * * ?", followUpdate)
-		err := c.AddFunc("0 */1 * * * ?", func() {
-			fmt.Println("123")
-		})
-		if err != nil {
-			return
-		}
-		c.Start()
-		select {}
-	}()
 }
 
 func GetHashRead() (string, string) {

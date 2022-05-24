@@ -27,7 +27,7 @@ func RelationAction(c *gin.Context) {
 	token := c.Query("token")
 	user, err := tools.VeifyToken(token)
 	if err != nil {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "前先登录！"})
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
 		return
 	}
 
@@ -45,7 +45,11 @@ func RelationAction(c *gin.Context) {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "对应用户不存在！"})
 		return
 	}
-
+	//不允许关注自己
+	if userId == toUserId {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "不能关注自己！"})
+		return
+	}
 	//redis缓存处理
 	actionType := c.Query("action_type")
 	redisErr := services.GetFollowService().RedisAction(userId, toUserId, actionType)

@@ -9,11 +9,11 @@ var pool *redis.Pool
 
 func GetRec() redis.Conn {
 	conn := pool.Get()
-	conn.Do("AUTH","douyin/123456")
+	conn.Do("AUTH", "douyin/123456")
 	return conn
 }
 
-func InitRedis(url string,pass string) {
+func InitRedis(url string, pass string) {
 	redisPool := &redis.Pool{
 		//最大活跃连接数，0代表无限
 		MaxActive: 888,

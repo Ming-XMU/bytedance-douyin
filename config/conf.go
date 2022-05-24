@@ -30,10 +30,10 @@ func Init() {
 	LoadRedis(file)
 	LoadRabbitMQ(file)
 	//开启mq监听
-	//mq.InitMQ(MQUrl)
-	//FollowQueueListen()
+	mq.InitMQ(MQUrl)
+	FollowQueueListen()
 	models.InitDB(MysqlPath)
-	models.InitRedis(RedisUrl,RedisPass)
+	models.InitRedis(RedisUrl, RedisPass)
 	initService()
 
 }
@@ -65,8 +65,8 @@ func LoadRabbitMQ(file *ini.File) {
 	MqPassword := file.Section("rabbitmq").Key("MqPassword").String()
 	Host := file.Section("rabbitmq").Key("Host").String()
 	Port := file.Section("rabbitmq").Key("Port").String()
-	//VirtualHost := file.Section("rabbitmq").Key("VirtualHost").String()
-	MQUrl = strings.Join([]string{"amqp://", MqName, ":", MqPassword, "@", Host, ":", Port, "/"}, "")
+	DefaultHost := file.Section("rabbitmq").Key("Default_Host").String()
+	MQUrl = strings.Join([]string{"amqp://", MqName, ":", MqPassword, "@", Host, ":", Port, "/", DefaultHost}, "")
 	fmt.Println(MQUrl)
 }
 
