@@ -72,7 +72,7 @@ func TokenVerifyVerifyInterceptor() gin.HandlerFunc {
 				fmt.Println("token is expire:", err.Error())
 				context.JSON(http.StatusOK, &controller.Response{
 					StatusCode: -1,
-					StatusMsg:  "token is expire or empty",
+					StatusMsg:  err.Error(),
 				})
 				//stop
 				context.Abort()
