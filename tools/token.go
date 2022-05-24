@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"time"
 )
@@ -12,6 +13,7 @@ import (
 const (
 	LoginTokenKey string = "login_tokens:"
 	PrivateKey    string = "douyin"
+	TokenUserHash string = "token_user_hash"
 )
 
 //  userStdClaims
@@ -28,6 +30,7 @@ type LoginUser struct {
 	UserId    int64
 	Name      string
 	TokenKey  string
+	Status    int //登录状态 0:在线 | 1:被挤下线
 }
 
 // CreateToken
@@ -42,6 +45,36 @@ func CreateToken(user *models.User) (string, error) {
 		return "", err
 	}
 	tokenKey := LoginTokenKey + uuid.String()
+
+	//查找是否存在映射
+	do, err := RedisDo("HGET", TokenUserHash, user.Id)
+	if err != nil {
+		return "", err
+	}
+	//如果存在映射
+	if do != nil {
+		t, err := redis.String(do, err)
+		if err != nil {
+			return "", err
+		}
+		//获取在线登录用户设置成下线状态
+		loginUser, err := RedisTokenKeyValue(t)
+		if err != nil {
+			return "", err
+		}
+
+		loginUser.Status = 1
+		//三分钟后下线状态移除tokenKey,转为下线用户tokenKey失效
+		err = RedisCacheTokenKey(t, loginUser, 180)
+		if err != nil {
+			return "", err
+		}
+	}
+	//设置新的用户id与tokenkey的映射hash
+	err = RedisDoHash("HSET", TokenUserHash, user.Id, tokenKey)
+	if err != nil {
+		return "", err
+	}
 	fmt.Println("key:" + tokenKey)
 	issuedTime := time.Now().Unix()
 	//设置过期时间
@@ -57,6 +90,7 @@ func CreateToken(user *models.User) (string, error) {
 		ExpiresAt: expireTime,
 		Name:      user.Name,
 		UserId:    user.Id,
+		Status:    0,
 	}
 	err = RedisCacheTokenKey(tokenKey, loginUser, DefaultExpirationTime)
 	if err != nil {
@@ -136,6 +170,11 @@ func VeifyToken(token string) (*LoginUser, error) {
 	loginUser, err := RedisTokenKeyValue(tokenKey)
 	if err != nil {
 		return nil, err
+	}
+	fmt.Printf("loginUserStatus = %d", loginUser.Status)
+	//判断loginUser登录状态
+	if loginUser.Status == 1 {
+		return nil, errors.New("Your account is already logged in elsewhere")
 	}
 	//过期时间刷新
 	expireTime := loginUser.ExpiresAt

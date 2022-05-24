@@ -5,7 +5,9 @@ import (
 	"douyin/models"
 	"douyin/tools"
 	"errors"
+	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/robfig/cron"
 	"strconv"
 	"strings"
 	"sync"
@@ -255,7 +257,7 @@ func (f *FollowServiceImpl) UserFollowerList(userId string) ([]models.UserMessag
 	return res, nil
 }
 
-func reHashKey() {
+func ReHashKey() {
 	followWrite, followRead = followRead, followWrite
 	followerWrite, followerRead = followerRead, followerWrite
 }
@@ -266,4 +268,90 @@ func getFollowKey(userId string) string {
 
 func getFollowerKey(userId string) string {
 	return strings.Join([]string{userId, "follower"}, "_")
+}
+
+// followUpdate
+// @author zia
+// @Description: 定时缓存写回mysql
+// @return error
+func followUpdate() {
+	//重置读写hash键
+	ReHashKey()
+	follow, follower := GetHashRead()
+	//获取关注数量所有键值对
+	followMap, err := tools.GetAllKV(follow)
+	if err != nil {
+		return
+	}
+	for k, v := range followMap {
+		userId, followCount, err := ParseIdAndCount(k, v)
+		if err != nil {
+			continue
+		}
+		//更新对应用户关注数
+		err = daos.GetFollowDao().UpdateUserFollowCount(userId, followCount)
+		if err != nil {
+			continue
+		}
+	}
+	//获取粉丝数量所有键值对
+	followerMap, err := tools.GetAllKV(follower)
+	if err != nil {
+		return
+	}
+	for k, v := range followerMap {
+		userId, followerCount, err := ParseIdAndCount(k, v)
+		if err != nil {
+			continue
+		}
+		//更新对应用户粉丝数
+		err = daos.GetFollowDao().UpdateUserFollowerCount(userId, followerCount)
+		if err != nil {
+			continue
+		}
+	}
+	err = tools.RedisDeleteKey(follow)
+	if err != nil {
+		return
+	}
+	err = tools.RedisDeleteKey(follower)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func ParseIdAndCount(k string, v string) (userId int, count int, err error) {
+	userId, err = strconv.Atoi(k)
+	if err != nil {
+		return
+	}
+	count, err = strconv.Atoi(v)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// TaskFollowStart
+// @author zia
+// @Description: 启动定时任务 | 每分钟更新一次
+func TaskFollowStart() {
+	//启动协程执行定时任务
+	go func() {
+		c := cron.New() // 新建一个定时任务对象
+		//err := c.AddFunc("0 */1 * * * ?", followUpdate)
+		err := c.AddFunc("0 */1 * * * ?", func() {
+			fmt.Println("123")
+		})
+		if err != nil {
+			return
+		}
+		c.Start()
+		select {}
+	}()
+}
+
+func GetHashRead() (string, string) {
+	return followRead, followerRead
 }

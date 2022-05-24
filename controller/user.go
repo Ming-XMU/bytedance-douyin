@@ -114,13 +114,16 @@ func Login(c *gin.Context) {
 		//更新令牌
 		token, err := tools.CreateToken(user)
 		if err != nil {
-			return
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: Response{StatusCode: 0, StatusMsg: "login fail"},
+			})
+		} else {
+			c.JSON(http.StatusOK, UserLoginResponse{
+				Response: Response{StatusCode: 0, StatusMsg: "login success"},
+				UserId:   user.Id,
+				Token:    token,
+			})
 		}
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 0, StatusMsg: "login success"},
-			UserId:   user.Id,
-			Token:    token,
-		})
 	}
 }
 

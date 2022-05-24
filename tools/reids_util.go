@@ -163,3 +163,29 @@ func RedisKeyExists(key interface{}) bool {
 	}
 	return false
 }
+
+// GetAllKV
+// @author zia
+// @Description: 获取hash所有键值对
+// @param hash
+// @return m
+// @return err
+func GetAllKV(hash string) (m map[string]string, err error) {
+	con := models.GetRec()
+	result, err := redis.Values(con.Do("hgetall", hash))
+	if err != nil {
+		return nil, err
+	}
+	m = make(map[string]string, len(result)/2)
+	var key string
+	for i, v := range result {
+		if i&1 == 0 {
+			//read key
+			key = string(v.([]byte))
+		} else {
+			//read value
+			m[key] = string(v.([]byte))
+		}
+	}
+	return m, nil
+}
