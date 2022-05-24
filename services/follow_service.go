@@ -89,13 +89,22 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 		return errors.New("缓存错误！")
 	}
 
+	//关注列表名
+	followKey := getFollowKey(userId)
+	//粉丝列表名
+	followerKey := getFollowerKey(toUserId)
+
+	//查询是否关注了
+	do, err := tools.RedisDo("sismember", followKey, toUserId)
+	exists := do.(int)
+
 	var action string
 	var add int
-	if actionType == "1" {
+	if actionType == "1" && exists == 0 {
 		//关注操作，关注列表添加touserId，粉丝列表添加userId，粉丝数+1
 		action = "SADD"
 		add = 1
-	} else if actionType == "2" {
+	} else if actionType == "2" && exists == 1 {
 		//取关操作，关注列表删除toUserId，粉丝列表删除userId，粉丝数-1
 		action = "SREM"
 		add = -1
@@ -103,11 +112,10 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 		return errors.New("操作类型错误！")
 	}
 	//用户关注列表更新
-	if tools.RedisDoKV(action, getFollowKey(userId), toUserId) != nil {
+	if tools.RedisDoKV(action, followKey, toUserId) != nil {
 		return errors.New("系统错误！，请稍后重试")
 	}
 	//被关注者，粉丝列表更新
-	followerKey := getFollowerKey(toUserId)
 	_ = tools.RedisDoKV(action, followerKey, userId)
 	//关注者关注数+1，被关注者粉丝数+1
 	_ = tools.RedisDoHash("HINCRBY", followWrite, userId, add)
