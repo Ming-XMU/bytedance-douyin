@@ -12,7 +12,7 @@ func initRouter(r *gin.Engine) {
 
 	apiRouter := r.Group("/douyin")
 	//register interceptor
-	apiRouter.Use(interceptor.TokenVerifyVerifyInterceptor())
+	apiRouter.Use(interceptor.TokenVerifyVerifyInterceptor(),interceptor.FavouriteRateLimitInterceptor())
 	// basic apis
 	apiRouter.GET("/feed/", controller.Feed)
 	apiRouter.GET("/user/", controller.UserInfo)

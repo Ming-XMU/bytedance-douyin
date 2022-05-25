@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 )
 import "douyin/daos"
 
@@ -139,7 +140,8 @@ func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error
 	//连接redis
 	rec := models.GetRec()
 	//从redis获取数据
-	videoCache, err := redis.Values(rec.Do("Lrange", "video_cache", 0, -1))
+	unix := time.Now().Unix()
+	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set",  unix,0,"limit",0,29))
 	if err != nil {
 		log.Println("get redis video_cache failed,err:", err.Error())
 		return nil, err
@@ -211,6 +213,8 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 
 //flush redis favourite cache
 func (f *FeedServiceImpl)FlushRedisFavouriteCount(){
+	//清空删除缓存
+	tools.FavouriteRateLimitDel()
 	for _,cacheName := range tools.DefaultVideoCacheList {
 		kv, err := tools.GetAllKV(cacheName)
 		if err != nil{
@@ -235,5 +239,5 @@ func (f *FeedServiceImpl)FlushRedisFavouriteCount(){
 			}
 		}
 	}
-
 }
+
