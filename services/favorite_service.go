@@ -46,35 +46,35 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 	//prepare msg to mq
 	favoriteAction := &mq.FavoriteActionMsg{
 		Favorite: favorite,
-		Action: action,
+		Action:   action,
 	}
 	jsonMsg, err := json.Marshal(favoriteAction)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	//cache
 	if action == 1 {
 		result, err := tools.RedisCacheFavorite(favorite)
-		if err != nil{
+		if err != nil {
 			return err
 		}
-		if result == 2{
+		if result == 2 {
 			return errors.New("已经点赞过了")
 		}
 	} else if action == 2 {
 		result, err := tools.RedisCacheCancelFavorite(favorite)
-		if err != nil{
+		if err != nil {
 			fmt.Println(err)
 			return err
 		}
-		if result == 2{
+		if result == 2 {
 			return errors.New("还没有进行点赞")
 		}
 	}
 
 	rabbitMQSimple := mq.NewRabbitMQSimple("favoriteActionQueue", "amqp://admin:123456@120.78.238.68:5672/default_host")
 	err = rabbitMQSimple.PublishSimple(string(jsonMsg))
-	if err != nil{
+	if err != nil {
 		//Roll Back
 		if action == 1 {
 			tools.RedisCacheCancelFavorite(favorite)

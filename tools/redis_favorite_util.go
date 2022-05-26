@@ -17,35 +17,34 @@ import (
 var (
 	//video favorite cache
 	DefaultVideoFavoriteCaches = map[int64]string{
-		0 : "video_cache_favorite_0",
-		1 : "video_cache_favorite_1",
-		2 : "video_cache_favorite_2",
+		0: "video_cache_favorite_0",
+		1: "video_cache_favorite_1",
+		2: "video_cache_favorite_2",
 	}
-	DefaultVideoCacheList = []string{"video_cache_favorite_0","video_cache_favorite_1","video_cache_favorite_2"}
+	DefaultVideoCacheList = []string{"video_cache_favorite_0", "video_cache_favorite_1", "video_cache_favorite_2"}
 	//Video Favorite Caches Length
-	DefaultVideoFavoriteCacheLength int64 = 3;
+	DefaultVideoFavoriteCacheLength int64 = 3
 
 	//User Favorite Video Cache prefix
 	DefaultUserFavoriteVideoCachePrefix = "user_favorite_video_cache:"
 
 	//favorite action record cache
 	DefaultFavouriteActionLimitCaches = map[int64]string{
-		0 : "user_cache_limit_rate_favorite_action_0",
-		1 : "user_cache_limit_rate_favorite_action_1",
-		2 : "user_cache_limit_rate_favorite_action_2",
+		0: "user_cache_limit_rate_favorite_action_0",
+		1: "user_cache_limit_rate_favorite_action_1",
+		2: "user_cache_limit_rate_favorite_action_2",
 	}
 	DefaultFavouriteActionLimitList = []string{
 		"user_cache_favorite_limit_rate_action_0",
 		"user_cache_favorite_limit_rate_action_1",
 		"user_cache_favorite_limit_rate_action_2",
 	}
-	DefaultFavouriteActionLimitLength int64 = 3;
+	DefaultFavouriteActionLimitLength int64  = 3
 	DefaultFavouriteActionLimitPrefix string = "user_favourite_limit:"
-
 )
 
 //cache favorite
-func RedisCacheFavorite(favorite *models.Favorite) (interface{},error){
+func RedisCacheFavorite(favorite *models.Favorite) (interface{}, error) {
 	//calculate hash
 	key := hashKey(favorite.VideoId)
 	//get cache name
@@ -59,11 +58,11 @@ func RedisCacheFavorite(favorite *models.Favorite) (interface{},error){
 	conn := models.GetRec()
 	defer conn.Close()
 	script := redis.NewScript(3, luaScript)
-	return script.Do(conn, cacheName, favorite.VideoId,favoriteVideoName)
+	return script.Do(conn, cacheName, favorite.VideoId, favoriteVideoName)
 }
 
 //cancel favorite
-func RedisCacheCancelFavorite(favorite *models.Favorite)(interface{},error){
+func RedisCacheCancelFavorite(favorite *models.Favorite) (interface{}, error) {
 	//calculate hash
 	key := hashKey(favorite.VideoId)
 	//get cache name
@@ -77,23 +76,24 @@ func RedisCacheCancelFavorite(favorite *models.Favorite)(interface{},error){
 	conn := models.GetRec()
 	defer conn.Close()
 	script := redis.NewScript(3, luaScript)
-	return script.Do(conn, cacheName, favorite.VideoId,favoriteVideoName)
+	return script.Do(conn, cacheName, favorite.VideoId, favoriteVideoName)
 }
 
 //calculate hash key
-func hashKey(videoId int64)int64{
+func hashKey(videoId int64) int64 {
 	return videoId % DefaultVideoFavoriteCacheLength
 }
+
 //get user favorite video cache name
-func PackageUserFavoriteCacheName(userId int64) string{
+func PackageUserFavoriteCacheName(userId int64) string {
 	formatUserId := strconv.FormatInt(userId, 10)
 	return DefaultUserFavoriteVideoCachePrefix + formatUserId
 }
 
 //get userid from cacheName
-func UnPackUserFavoriteCacheName(cacheName string) (userid int64,err error){
+func UnPackUserFavoriteCacheName(cacheName string) (userid int64, err error) {
 	split := strings.Split(cacheName, ":")
-	if len(split) < 2{
+	if len(split) < 2 {
 		err = errors.New("cacheName is not corrept")
 		return
 	}
@@ -103,7 +103,7 @@ func UnPackUserFavoriteCacheName(cacheName string) (userid int64,err error){
 }
 
 //use favourite rate limit
-func FavouriteRateLimit(userId int64) (result interface{},err error){
+func FavouriteRateLimit(userId int64) (result interface{}, err error) {
 	rec := models.GetRec()
 	defer rec.Close()
 	luaScript := "if redis.call(\"EXISTS\",KEYS[1]) ~= 0 and " +
@@ -121,14 +121,14 @@ func FavouriteRateLimit(userId int64) (result interface{},err error){
 	return script.Do(rec, cacheName, userId, limitListName, time.Now().Unix())
 }
 
-func GetFavouriteRateLimitCache(userId int64) string{
-	return DefaultFavouriteActionLimitCaches[userId % DefaultFavouriteActionLimitLength]
+func GetFavouriteRateLimitCache(userId int64) string {
+	return DefaultFavouriteActionLimitCaches[userId%DefaultFavouriteActionLimitLength]
 }
-func PackageFavouriteRateLimitListName(userId int64) string{
+func PackageFavouriteRateLimitListName(userId int64) string {
 	formatUserId := strconv.FormatInt(userId, 10)
-	return DefaultFavouriteActionLimitPrefix+ formatUserId
+	return DefaultFavouriteActionLimitPrefix + formatUserId
 }
-func FavouriteRateLimitDel()error{
+func FavouriteRateLimitDel() error {
 	rec := models.GetRec()
 	defer rec.Close()
 	luascript := "redis.call(\"DEL\",KEYS[1])\nredis.call(\"DEL\",KEYS[2])\nredis.call(\"DEL\",KEYS[3])"
@@ -137,4 +137,15 @@ func FavouriteRateLimitDel()error{
 		"user_cache_favorite_limit_rate_action_1",
 		"user_cache_favorite_limit_rate_action_2")
 	return err
+}
+
+func JudgeisFavoriteByredis(VideoId, UserId int64) int64 {
+	conn := models.GetRec()
+	defer conn.Close()
+	favoriteVideoName := PackageUserFavoriteCacheName(UserId)
+	ret, err := conn.Do("sismember", favoriteVideoName, VideoId)
+	if err != nil { //读取缓存出错，默认为未点赞，后面再看怎么改合适 TODO
+		return 0
+	}
+	return ret.(int64)
 }

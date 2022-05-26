@@ -29,7 +29,7 @@ const (
 	Play_Url_Path  = "D:/goProject/src/simple-demo/public/video/"
 	Cover_Url_Path = "D:/goProject/src/simple-demo/public/img/"
 	//TODO 上线修改为服务器的IP地址和端口
-	Show_Play_Url_Prefix = "http://localhost:8080/static/video/"
+	Show_Play_Url_Prefix  = "http://localhost:8080/static/video/"
 	Show_Cover_Url_Prefix = "http://localhost:8080/static/img/"
 )
 
@@ -39,7 +39,7 @@ type FeedService interface {
 	CreatVideoList(user int) []models.VOVideo
 	GetAuthor(user, id int) (Author models.VOUser)
 	//flush redis favourite
-	FlushRedisFavouriteActionCache(videoId int64,count int)error
+	FlushRedisFavouriteActionCache(videoId int64, count int) error
 	FlushRedisFavouriteCount()
 }
 type FeedServiceImpl struct {
@@ -84,7 +84,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		fmt.Println("create cover failed:", err.Error())
 		//del file
 		err = os.Remove(saveFile)
-		if err != nil{
+		if err != nil {
 			fmt.Println("file remove failed...")
 		}
 		err = errors.New("create cover failed..")
@@ -114,8 +114,8 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	return
 }
 
-func(f *FeedServiceImpl)FlushRedisFavouriteActionCache(videoId int64,count int) error{
-	return f.feedDao.UpdateVideoFavoriteCount(videoId,count)
+func (f *FeedServiceImpl) FlushRedisFavouriteActionCache(videoId int64, count int) error {
+	return f.feedDao.UpdateVideoFavoriteCount(videoId, count)
 }
 
 //single create
@@ -141,7 +141,7 @@ func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error
 	rec := models.GetRec()
 	//从redis获取数据
 	unix := time.Now().Unix()
-	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set",  unix,0,"limit",0,29))
+	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set", unix, 0, "limit", 0, 29))
 	if err != nil {
 		log.Println("get redis video_cache failed,err:", err.Error())
 		return nil, err
@@ -178,10 +178,17 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 		videoret.CommentCount = singlevideo.CommentCount
 		videoret.FavoriteCount = singlevideo.FavoriteCount
 		videoret.Author = f.GetAuthor(user, int(singlevideo.UserId))
+		//videoret.Author=followService.UserFollowInfo(, strconv.Itoa(user))
 		if user == 0 { //未登录用户，是否点赞即为默认值未点赞
 			videoret.IsFavorite = false
 		} else {
-			videoret.IsFavorite = GetFavoriteService().FavoriteJudge(user, int(singlevideo.ID))
+			//videoret.IsFavorite = GetFavoriteService().FavoriteJudge(user, int(singlevideo.ID))
+			getIs := tools.JudgeisFavoriteByredis(singlevideo.ID, int64(user))
+			if getIs == 1 {
+				videoret.IsFavorite = true
+			} else {
+				videoret.IsFavorite = false
+			}
 		}
 		videoret.Title = singlevideo.Title
 		videolist = append(videolist, videoret)
@@ -212,32 +219,31 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 }
 
 //flush redis favourite cache
-func (f *FeedServiceImpl)FlushRedisFavouriteCount(){
+func (f *FeedServiceImpl) FlushRedisFavouriteCount() {
 	//清空删除缓存
 	tools.FavouriteRateLimitDel()
-	for _,cacheName := range tools.DefaultVideoCacheList {
+	for _, cacheName := range tools.DefaultVideoCacheList {
 		kv, err := tools.GetAllKV(cacheName)
-		if err != nil{
-			fmt.Println("flush error occured,cacheName :" ,cacheName)
+		if err != nil {
+			fmt.Println("flush error occured,cacheName :", cacheName)
 		}
-		for k,v := range kv {
+		for k, v := range kv {
 			//parse int
-			videoId ,err:= strconv.ParseInt(k,10,64)
-			if err != nil{
+			videoId, err := strconv.ParseInt(k, 10, 64)
+			if err != nil {
 				//TODO 出现局部出错
 				continue
 			}
-			count,err := strconv.Atoi(v)
-			if err != nil{
+			count, err := strconv.Atoi(v)
+			if err != nil {
 				//TODO 出现局部出错
 				continue
 			}
 			err = f.FlushRedisFavouriteActionCache(videoId, count)
-			if err != nil{
+			if err != nil {
 				//TODO 出现局部出错
 				continue
 			}
 		}
 	}
 }
-
