@@ -177,6 +177,13 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 		videoret.PlayUrl = singlevideo.PlayUrl
 		videoret.CommentCount = singlevideo.CommentCount
 		videoret.FavoriteCount = singlevideo.FavoriteCount
+		//getuser, err := GetUserService().UserInfo(string(singlevideo.UserId))
+		//if err != nil {
+		//	fmt.Println("get authors failed,err: ", err.Error())
+		//	videoret.Author=models.VODemoUser
+		//}else {
+		//	videoret.Author=followService.UserFollowInfo(getuser,string(singlevideo.UserId))
+		//}//上面那接口用起来有点难改....
 		videoret.Author = f.GetAuthor(user, int(singlevideo.UserId))
 		//videoret.Author=followService.UserFollowInfo(, strconv.Itoa(user))
 		if user == 0 { //未登录用户，是否点赞即为默认值未点赞
@@ -209,10 +216,13 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 	if user == 0 { //未登录用户，关注即为默认值未关注
 		Author.IsFollow = false
 	} else { //user-登录用户id getuser.id-视频作者id，前后关系!
-		Author.IsFollow, err = daos.GetFollowDao().JudgeIsFollow(user, int(getuser.Id))
+		//Author.IsFollow, err = daos.GetFollowDao().JudgeIsFollow(user, int(getuser.Id))
+		getIsFollow, err := tools.RedisDo("sismember", getFollowKey(strconv.Itoa(user)), getuser.Id)
 		if err != nil {
 			log.Println("feed 数据库读取follow出错", err.Error())
 			Author.IsFollow = false //数据库读取follow出错时，使用默认值false
+		} else {
+			Author.IsFollow = getIsFollow.(bool)
 		}
 	}
 	return Author
