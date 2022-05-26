@@ -53,7 +53,7 @@ func CommentAction(c *gin.Context) {
 	}
 
 	// Service调用
-	err := services.GetCommentService().CommentAction(userId, videoId, commentId, actionType, commentText)
+	err := services.GetCommentService().CommentAction(int64(userId), int64(videoId), int64(commentId), actionType, commentText)
 
 	if err != nil {
 		c.JSON(http.StatusOK, Response{

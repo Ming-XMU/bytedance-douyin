@@ -15,6 +15,8 @@ type CommentDao interface {
 	InsertComment(comment *models.Comment) error
 	ListCommentById(videoId int) (comments []models.Comment, err error)
 	DeleteComment(commentId int) error
+	GetcCommentIdNext() (num int64, err error)
+	GetCommentByCommentId(commentId int) (*models.Comment, error)
 }
 
 type CommentDaoImpl struct {
@@ -54,4 +56,29 @@ func GetCommentDao() CommentDao {
 		}
 	})
 	return commentDao
+}
+
+// GetcCommentIdNext 获取下一条自增主键Id
+// author:wechan
+func (c CommentDaoImpl) GetcCommentIdNext() (num int64, err error) {
+	comment := &models.Comment{
+		VideoId: 0,
+		UserId:  0,
+		Message: "",
+	}
+	c.db.Debug().Create(comment)
+	num = comment.ID
+	c.DeleteComment(int(num))
+	//select table_name, AUTO_INCREMENT from information_schema.tables where table_name="get_max_id";
+	//num = c.db.Debug().Select("auto_increment", "information_schema.'TABLES'").Where("table_name=?", "Comment")
+	return num + 1, nil
+}
+
+func (c *CommentDaoImpl) GetCommentByCommentId(commentId int) (*models.Comment, error) {
+	var comment models.Comment
+	err := c.db.Where("id=?", commentId).Find(&comment)
+	if err != nil {
+		//错误处理 TODO
+	}
+	return &comment, nil
 }
