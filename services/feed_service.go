@@ -222,7 +222,7 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 			log.Println("feed 数据库读取follow出错", err.Error())
 			Author.IsFollow = false //数据库读取follow出错时，使用默认值false
 		} else {
-			Author.IsFollow = getIsFollow.(bool)
+			Author.IsFollow, _ = redis.Bool(getIsFollow, err)
 		}
 	}
 	return Author

@@ -25,6 +25,7 @@ const (
 //cache feed
 func RedisCacheFeed(video *models.Video) (err error) {
 	con := models.GetRec()
+	defer con.Close()
 	//video json
 	jsonResult, err := json.Marshal(&video)
 	if err != nil {
@@ -42,6 +43,7 @@ func RedisCacheFeed(video *models.Video) (err error) {
 // @return error
 func RedisCacheTokenKey(k string, u *LoginUser, t int) error {
 	conn := models.GetRec()
+	defer conn.Close()
 	_, err := conn.Do("HMSET", redis.Args{}.Add(k).AddFlat(u)...)
 	if err != nil {
 		return err
@@ -61,6 +63,7 @@ func RedisCacheTokenKey(k string, u *LoginUser, t int) error {
 // @return err
 func RedisTokenKeyValue(k string) (u *LoginUser, err error) {
 	conn := models.GetRec()
+	defer conn.Close()
 	v, err := redis.Values(conn.Do("HGETALL", k))
 	if err != nil {
 		fmt.Println("redis.Values() err: ", err)
@@ -82,6 +85,7 @@ func RedisTokenKeyValue(k string) (u *LoginUser, err error) {
 // @return error
 func RedisKeyFlush(k interface{}) error {
 	conn := models.GetRec()
+	defer conn.Close()
 	_, err := conn.Do("expire", k, DefaultExpirationTime)
 	if err != nil {
 		return err
@@ -98,6 +102,7 @@ func RedisKeyFlush(k interface{}) error {
 func RedisCheckKey(k string) (bool, error) {
 	//当key不存在时，返回-2，当key存在但没有设置剩余生存时间时，返回-1。否则，以毫秒为单位，返回key的剩余生存时间
 	conn := models.GetRec()
+	defer conn.Close()
 	r, err := redis.Int(conn.Do("TTL", k))
 	if err != nil {
 		return false, err
@@ -116,6 +121,7 @@ func RedisCheckKey(k string) (bool, error) {
 func RedisDeleteKey(k string) error {
 	//当key不存在时，返回-2，当key存在但没有设置剩余生存时间时，返回-1。否则，以毫秒为单位，返回key的剩余生存时间
 	conn := models.GetRec()
+	defer conn.Close()
 	_, err := conn.Do("DEL", k)
 	if err != nil {
 		return err
@@ -127,6 +133,7 @@ func RedisDeleteKey(k string) error {
 //redis操作：action name value
 func RedisDoKV(action string, name, value interface{}) error {
 	con := models.GetRec()
+	defer con.Close()
 	_, err := con.Do(action, name, value)
 	if err != nil {
 		return err
@@ -138,6 +145,7 @@ func RedisDoKV(action string, name, value interface{}) error {
 //redis操作：action name key value
 func RedisDoHash(action string, name, key, value interface{}) error {
 	con := models.GetRec()
+	defer con.Close()
 	_, err := con.Do(action, name, key, value)
 	if err != nil {
 		return err
@@ -149,6 +157,7 @@ func RedisDoHash(action string, name, key, value interface{}) error {
 //redis操作，切片传值，啥都可以做
 func RedisDo(action string, values ...interface{}) (reply interface{}, err error) {
 	con := models.GetRec()
+	defer con.Close()
 	do, err := con.Do(action, values...)
 	return do, err
 }
@@ -157,6 +166,7 @@ func RedisDo(action string, values ...interface{}) (reply interface{}, err error
 //key存在判断
 func RedisKeyExists(key interface{}) bool {
 	con := models.GetRec()
+	defer con.Close()
 	do, _ := con.Do("EXISTS", key)
 	if do == 1 {
 		return true
@@ -172,6 +182,7 @@ func RedisKeyExists(key interface{}) bool {
 // @return err
 func GetAllKV(hash string) (m map[string]string, err error) {
 	con := models.GetRec()
+	defer con.Close()
 	result, err := redis.Values(con.Do("hgetall", hash))
 	if err != nil {
 		return nil, err
