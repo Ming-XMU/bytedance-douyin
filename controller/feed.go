@@ -2,7 +2,6 @@ package controller
 
 import (
 	"douyin/models"
-	"douyin/services"
 	"douyin/tools"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -36,7 +35,7 @@ func Feed(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  Response{StatusCode: 0, StatusMsg: "success"},
-		VideoList: services.GetFeedService().CreatVideoList(user),
+		VideoList: FeeSerivce.CreatVideoList(user),
 		NextTime:  latestTime,
 	})
 }

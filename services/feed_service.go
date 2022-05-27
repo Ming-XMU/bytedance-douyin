@@ -118,6 +118,8 @@ func (f *FeedServiceImpl) FlushRedisFavouriteActionCache(videoId int64, count in
 	return f.feedDao.UpdateVideoFavoriteCount(videoId, count)
 }
 
+
+
 //single create
 var (
 	feedService     FeedService

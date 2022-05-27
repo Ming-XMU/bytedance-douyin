@@ -45,10 +45,25 @@ func FavoriteAction(c *gin.Context) {
 
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
+	token := c.Query("token")
+	loginUser, err := tools.VeifyToken(token)
+	if err != nil{
+		c.JSON(http.StatusOK,Response{
+			StatusCode: -1,
+			StatusMsg: err.Error(),
+		})
+	}
+	list, err := services.GetFavoriteService().GetUserFavoriteVideoList(loginUser.UserId)
+	if err != nil{
+		c.JSON(http.StatusOK,Response{
+			StatusCode: -1,
+			StatusMsg: err.Error(),
+		})
+	}
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		VideoList: DemoVideos,
+		VideoList: list,
 	})
 }

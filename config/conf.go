@@ -75,6 +75,7 @@ func initService() {
 	controller.FeeSerivce = services.GetFeedService()
 	controller.UserSerivce = services.GetUserService()
 	controller.FollowSerivce = services.GetFollowService()
+	controller.
 }
 
 func FollowQueueListen() {

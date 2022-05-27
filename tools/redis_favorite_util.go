@@ -103,6 +103,7 @@ func UnPackUserFavoriteCacheName(cacheName string) (userid int64, err error) {
 }
 
 //use favourite rate limit
+//限流规则：5分钟10次、一天不超过100
 func FavouriteRateLimit(userId int64) (result interface{}, err error) {
 	rec := models.GetRec()
 	defer rec.Close()

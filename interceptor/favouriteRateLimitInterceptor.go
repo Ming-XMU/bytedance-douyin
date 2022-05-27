@@ -43,7 +43,6 @@ func FavouriteRateLimitInterceptor() gin.HandlerFunc {
 				//stop
 				context.Abort()
 			}
-			fmt.Println("=========",result,"=========")
 			resultToInt := result.(int64)
 			if resultToInt == 0{
 				context.JSON(http.StatusOK, &controller.Response{

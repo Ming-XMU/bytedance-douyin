@@ -1,6 +1,7 @@
 package services
 
 import (
+	"douyin/controller"
 	"douyin/daos"
 	"douyin/models"
 	mq "douyin/mq"
@@ -28,6 +29,8 @@ func GetFavoriteService() FavoriteService {
 type FavoriteService interface {
 	FavoriteAction(userId int64, videoId int64, acton int) error
 	FavoriteJudge(userId, videoId int) bool
+	//Get User Favorite Video List
+	GetUserFavoriteVideoList(videoId int64)(list []controller.Video,err error)
 }
 
 type FavoriteServiceImpl struct {
@@ -84,6 +87,35 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 		return err
 	}
 	return err
+}
+
+func(f *FavoriteServiceImpl)GetUserFavoriteVideoList(userId int64)(list []controller.Video,err error){
+	favorites, err := f.favoriteDao.UserFavorites(userId)
+	if err != nil{
+		fmt.Println("get usere favorite video failed:",err)
+		return
+	}
+	//vo to dto
+	videoList := make([]controller.Video,len(list))
+	//get relation ship
+	for _,favorite := range(favorites){
+		video := controller.Video{
+			Id: favorite.Video.ID,
+			PlayUrl: favorite.Video.PlayUrl,
+			CoverUrl: favorite.Video.CoverUrl,
+			FavoriteCount: favorite.Video.FavoriteCount,
+			CommentCount: favorite.Video.CommentCount,
+			IsFavorite: true,
+			Author: models.UserMessage{
+				Id: favorite.UserId,
+				Name: favorite.Author.Name,
+				FollowCount: favorite.Author.FollowCount,
+				FollowerCount: favorite.Author.FollowerCount,
+			},
+		}
+		videoList = append(videoList,video)
+	}
+	return videoList,nil
 }
 
 // FavoriteJudge 判断是否有点赞

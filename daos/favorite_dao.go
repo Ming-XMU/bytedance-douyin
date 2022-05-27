@@ -15,6 +15,7 @@ type FavoriteDao interface {
 	InsertFavorite(favorite *models.Favorite) error
 	DeleteFavorite(userId, videoId int) error
 	JudgeIsFavorite(userId, videoId int) (bool, error)
+	UserFavorites(userId int64)(lists []models.FavoriteList,err error)
 }
 
 type FavoriteDaoImpl struct {
@@ -29,7 +30,12 @@ func GetFavoriteDao() FavoriteDao {
 	})
 	return favoriteDao
 }
-
+func(f *FavoriteDaoImpl)UserFavorites(userId int64)(lists []models.FavoriteList,err error){
+	var favoriteLists []models.FavoriteList
+	err = f.db.Debug().Preload("Author").Preload("Video").Where("user_id", userId).Find(&favoriteLists).Error
+	lists = favoriteLists
+	return
+}
 func (f *FavoriteDaoImpl) InsertFavorite(favorite *models.Favorite) error {
 	return f.db.Debug().Create(favorite).Error
 }
