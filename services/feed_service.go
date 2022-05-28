@@ -37,7 +37,7 @@ const (
 type FeedService interface {
 	//public video
 	PublishAction(c *gin.Context) error
-	CreatVideoList(user int) []models.VOVideo
+	CreatVideoList(user int, latestTime int64) ([]models.VOVideo, int64)
 	GetAuthor(user, id int) (Author models.VOUser)
 	//flush redis favourite
 	FlushRedisFavouriteActionCache(videoId int64, count int) error
@@ -67,9 +67,9 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//check multiply
 	savePlayUrl := Show_Play_Url_Prefix + finalName
 	rowsAffected, err := f.feedDao.FindVideoByPlayUrl(savePlayUrl)
-	if rowsAffected > 0{
+	if rowsAffected > 0 {
 		err = errors.New("video is existed...")
-		console.Warn("videoName:%s is existed",savePlayUrl)
+		console.Warn("videoName:%s is existed", savePlayUrl)
 		return
 	}
 	//create video
@@ -124,8 +124,6 @@ func (f *FeedServiceImpl) FlushRedisFavouriteActionCache(videoId int64, count in
 	return f.feedDao.UpdateVideoFavoriteCount(videoId, count)
 }
 
-
-
 //single create
 var (
 	feedService     FeedService
@@ -143,13 +141,13 @@ func GetFeedService() FeedService {
 
 //GetJsonFeeCache 获取redis中缓存的视频数据
 //author: wechan
-func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error) {
+func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.Video, err error) {
 	VideoList = make([]models.Video, 0, 31)
 	//连接redis
 	rec := models.GetRec()
 	//从redis获取数据
-	unix := time.Now().Unix()
-	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set", unix, 0, "limit", 0, 29))
+	//unix := time.Now().Unix()
+	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set", latestTime, 0, "limit", 0, 29))
 	if err != nil {
 		log.Println("get redis video_cache failed,err:", err.Error())
 		return nil, err
@@ -170,14 +168,15 @@ func (f *FeedServiceImpl) GetJsonFeeCache() (VideoList []models.Video, err error
 
 // CreatVideoList 获取视频流列表
 // author:wechan
-func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) {
+func (f *FeedServiceImpl) CreatVideoList(user int, latestTime int64) (videolist []models.VOVideo, newestTime int64) {
 	videolist = make([]models.VOVideo, 0, 31)
 	var videoret models.VOVideo
-	videos, err := f.GetJsonFeeCache()
+	videos, err := f.GetJsonFeeCache(latestTime)
 	if err != nil || videos == nil {
 		//fmt.Println("create video list get redis cache failed,err:", err.Error())
 		//fmt.Println("len of video cache: ", len(videos))
-		return models.VODemoVideos //获取不到redis缓存数据，直接返回demovideos
+
+		return models.VODemoVideos, time.Now().Unix() //获取不到redis缓存数据，直接返回demovideos
 	}
 	for _, singlevideo := range videos {
 		videoret.Id = singlevideo.ID
@@ -206,9 +205,14 @@ func (f *FeedServiceImpl) CreatVideoList(user int) (videolist []models.VOVideo) 
 			}
 		}
 		videoret.Title = singlevideo.Title
+
 		videolist = append(videolist, videoret)
 	}
-	return videolist
+	newestTime = time.Now().Unix()
+	if len(videos) > 0 {
+		newestTime = videos[0].CreateAt.Unix()
+	}
+	return videolist, newestTime
 }
 
 func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
