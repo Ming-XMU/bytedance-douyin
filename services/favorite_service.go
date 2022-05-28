@@ -1,14 +1,13 @@
 package services
 
 import (
-	"douyin/controller"
 	"douyin/daos"
 	"douyin/models"
 	mq "douyin/mq"
 	"douyin/tools"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/anqiansong/ketty/console"
 	"sync"
 )
 
@@ -30,7 +29,7 @@ type FavoriteService interface {
 	FavoriteAction(userId int64, videoId int64, acton int) error
 	FavoriteJudge(userId, videoId int) bool
 	//Get User Favorite Video List
-	GetUserFavoriteVideoList(videoId int64)(list []controller.Video,err error)
+	GetUserFavoriteVideoList(videoId int64)(list []models.FavoriteList,err error)
 }
 
 type FavoriteServiceImpl struct {
@@ -67,7 +66,7 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 	} else if action == 2 {
 		result, err := tools.RedisCacheCancelFavorite(favorite)
 		if err != nil {
-			fmt.Println(err)
+			console.Error(err)
 			return err
 		}
 		if result == 2 {
@@ -84,38 +83,20 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 		} else if action == 2 {
 			tools.RedisCacheFavorite(favorite)
 		}
+		console.Error(err)
 		return err
 	}
 	return err
 }
 
-func(f *FavoriteServiceImpl)GetUserFavoriteVideoList(userId int64)(list []controller.Video,err error){
+func(f *FavoriteServiceImpl)GetUserFavoriteVideoList(userId int64)(list []models.FavoriteList,err error){
 	favorites, err := f.favoriteDao.UserFavorites(userId)
 	if err != nil{
-		fmt.Println("get usere favorite video failed:",err)
+		console.Error(err)
 		return
 	}
-	//vo to dto
-	videoList := make([]controller.Video,len(list))
-	//get relation ship
-	for _,favorite := range(favorites){
-		video := controller.Video{
-			Id: favorite.Video.ID,
-			PlayUrl: favorite.Video.PlayUrl,
-			CoverUrl: favorite.Video.CoverUrl,
-			FavoriteCount: favorite.Video.FavoriteCount,
-			CommentCount: favorite.Video.CommentCount,
-			IsFavorite: true,
-			Author: models.UserMessage{
-				Id: favorite.UserId,
-				Name: favorite.Author.Name,
-				FollowCount: favorite.Author.FollowCount,
-				FollowerCount: favorite.Author.FollowerCount,
-			},
-		}
-		videoList = append(videoList,video)
-	}
-	return videoList,nil
+
+	return favorites,nil
 }
 
 // FavoriteJudge 判断是否有点赞

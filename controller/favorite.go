@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/models"
 	"douyin/services"
 	"douyin/tools"
 	"github.com/gin-gonic/gin"
@@ -60,10 +61,30 @@ func FavoriteList(c *gin.Context) {
 			StatusMsg: err.Error(),
 		})
 	}
+	//vo to dto
+	videoList := make([]Video,len(list))
+	//get relation ship
+	for _,favorite := range(list){
+		video := Video{
+			Id: favorite.Video.ID,
+			PlayUrl: favorite.Video.PlayUrl,
+			CoverUrl: favorite.Video.CoverUrl,
+			FavoriteCount: favorite.Video.FavoriteCount,
+			CommentCount: favorite.Video.CommentCount,
+			IsFavorite: true,
+			Author: models.UserMessage{
+				Id: favorite.UserId,
+				Name: favorite.Author.Name,
+				FollowCount: favorite.Author.FollowCount,
+				FollowerCount: favorite.Author.FollowerCount,
+			},
+		}
+		videoList = append(videoList,video)
+	}
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		VideoList: list,
+		VideoList: videoList,
 	})
 }

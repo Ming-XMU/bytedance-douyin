@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/anqiansong/ketty v0.0.0-20211202021934-dbaf2e277891
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.11.0 // indirect

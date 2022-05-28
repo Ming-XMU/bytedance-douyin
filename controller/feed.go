@@ -33,9 +33,10 @@ func Feed(c *gin.Context) {
 		fmt.Println("时间戳转换失败,err:", err.Error())
 		latestTime = time.Now().Unix()
 	}
+	videolist, newestTime := FeeSerivce.CreatVideoList(user, latestTime)
 	c.JSON(http.StatusOK, FeedResponse{
 		Response:  Response{StatusCode: 0, StatusMsg: "success"},
-		VideoList: FeeSerivce.CreatVideoList(user),
-		NextTime:  latestTime,
+		VideoList: videolist,
+		NextTime:  newestTime,
 	})
 }
