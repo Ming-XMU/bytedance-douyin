@@ -68,13 +68,13 @@ func Register(c *gin.Context) {
 		return
 	}
 	//判断用户名是否违规
-	err := tools.Init("./config/sensitive_word.txt")
-	if err != nil {
-		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "敏感词库文件加载失败"},
-		})
-		return
-	}
+	//err := tools.Init("./config/sensitive_word.txt")
+	//if err != nil {
+	//	c.JSON(http.StatusOK, UserLoginResponse{
+	//		Response: Response{StatusCode: 1, StatusMsg: "敏感词库文件加载失败"},
+	//	})
+	//	return
+	//}
 	_, isReplaced := tools.Replace(username, "*")
 	if isReplaced == false {
 		c.JSON(http.StatusOK, UserLoginResponse{

@@ -5,7 +5,9 @@ import (
 	"douyin/models"
 	"douyin/mq"
 	"douyin/services"
+	"douyin/tools"
 	"fmt"
+	"github.com/anqiansong/ketty/console"
 	"gopkg.in/ini.v1"
 	"log"
 	"strings"
@@ -35,7 +37,12 @@ func Init() {
 	models.InitDB(MysqlPath)
 	models.InitRedis(RedisUrl, RedisPass)
 	initService()
-
+	//load sensitive
+	err = tools.Init("config/sensitive_words.txt")
+	if err != nil{
+		console.Error(err)
+		panic(err.Error())
+	}
 }
 
 // LoadMysql
@@ -75,6 +82,7 @@ func initService() {
 	controller.FeeSerivce = services.GetFeedService()
 	controller.UserSerivce = services.GetUserService()
 	controller.FollowSerivce = services.GetFollowService()
+	controller.FavouriteService = services.GetFavoriteService()
 }
 
 func FollowQueueListen() {

@@ -22,7 +22,7 @@ var(
 func TestGetUserFavorites(t *testing.T){
 	favorites, err := favoriteDao.UserFavorites(2)
 	if err != nil{
-		log.Fatal(err)
+		t.Errorf(err.Error())
 	}
 	for _,favorite := range(favorites){
 		fmt.Println(favorite)

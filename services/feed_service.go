@@ -32,6 +32,10 @@ const (
 	//TODO 上线修改为服务器的IP地址和端口
 	Show_Play_Url_Prefix  = "http://localhost:8080/static/video/"
 	Show_Cover_Url_Prefix = "http://localhost:8080/static/img/"
+
+	MaxTitleLength = 100
+	MinTitleLength = 10
+
 )
 
 type FeedService interface {
@@ -47,11 +51,27 @@ type FeedServiceImpl struct {
 	feedDao daos.FeedDao
 }
 
+func(f *FeedServiceImpl) verifyTitle(title string) error{
+	if tools.VerifyParamsEmpty(title) {
+		return errors.New("title is empty..")
+	}
+	//check title length
+	if len(title) > MaxTitleLength || len(title) < MinTitleLength{
+		return errors.New("title length is limit 10 ~ 100")
+	}
+	//check invalid input
+	_, isReplaced := tools.Replace(title, "*")
+	if isReplaced {
+		return errors.New("input vaild..")
+	}
+	return nil
+}
+
 func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//verify title
 	title := c.PostForm("title")
-	if tools.VerifyParamsEmpty(title) {
-		err = errors.New("title is empty..")
+	err = f.verifyTitle(title)
+	if err != nil{
 		return
 	}
 	//get user id from token
@@ -60,16 +80,25 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	user, err := tools.RedisTokenKeyValue(tokenKey)
 	userId := user.UserId
 	file, err := c.FormFile("data")
+	if err != nil{
+		console.Error(err)
+		return errors.New("get video data failed...")
+	}
 	//create play_url
 	filename := filepath.Base(file.Filename)
+	//check invalid input
+	_, isReplaced := tools.Replace(filename, "*")
+	if isReplaced {
+		return errors.New("出现违法词汇，请检查视频名称")
+	}
 	finalName := fmt.Sprintf("%d_%s", userId, filename)
 	saveFile := filepath.Join("./public/video", finalName)
 	//check multiply
 	savePlayUrl := Show_Play_Url_Prefix + finalName
 	rowsAffected, err := f.feedDao.FindVideoByPlayUrl(savePlayUrl)
-	if rowsAffected > 0 {
+	if rowsAffected > 0{
 		err = errors.New("video is existed...")
-		console.Warn("videoName:%s is existed", savePlayUrl)
+		console.Warn("videoName:%s is existed",savePlayUrl)
 		return
 	}
 	//create video
@@ -78,7 +107,6 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		err = errors.New("create video failed...")
 		return
 	}
-
 	//Create CoverUrl
 	//cmd format :ffmpeg -i  1_mmexport1652668404330.mp4 -ss 00:00:00 -frames:v 1 out.jpg
 	coverFile := finalName + ".jpg"

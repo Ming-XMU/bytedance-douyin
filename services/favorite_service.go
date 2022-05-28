@@ -29,7 +29,7 @@ type FavoriteService interface {
 	FavoriteAction(userId int64, videoId int64, acton int) error
 	FavoriteJudge(userId, videoId int) bool
 	//Get User Favorite Video List
-	GetUserFavoriteVideoList(videoId int64)(list []models.FavoriteList,err error)
+	GetUserFavoriteVideoList(videoId int64)(list []models.VideoVo,err error)
 }
 
 type FavoriteServiceImpl struct {
@@ -89,13 +89,54 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 	return err
 }
 
-func(f *FavoriteServiceImpl)GetUserFavoriteVideoList(userId int64)(list []models.FavoriteList,err error){
+func(f *FavoriteServiceImpl)GetUserFavoriteVideoList(userId int64)(list []models.VideoVo,err error){
+	favoriteList, err := f.GetUserFavoriteVideoListFromDB(userId)
+	if err != nil{
+		console.Error(err)
+		return
+	}
+	//get follow list
+	followList, err := GetFollowService().UserFollowList(string(userId))
+	if err != nil{
+		console.Error(err)
+		return
+	}
+	//change map
+	m := make(map[int64]struct{},len(followList))
+	list = make([]models.VideoVo,len(followList))
+	for _,follow := range(followList){
+		m[follow.Id] = struct{}{}
+	}
+	//dto to vo
+	for _,favorite := range(favoriteList){
+		_,ok := m[favorite.Author.Id]
+		list = append(list,models.VideoVo{
+			Id: favorite.VideoId,
+			Author: models.UserMessage{
+				Id: favorite.Author.Id,
+				Name : favorite.Author.Name,
+				FollowerCount: favorite.Author.FollowerCount,
+				FollowCount: favorite.Author.FollowCount,
+				IsFollow: ok,
+			},
+			PlayUrl: favorite.Video.PlayUrl,
+			CoverUrl: favorite.Video.CoverUrl,
+			FavoriteCount: favorite.Video.FavoriteCount,
+			CommentCount: favorite.Video.CommentCount,
+			IsFavorite: true,
+		})
+	}
+	//favorite
+	return
+}
+
+//get favorite video from db
+func(f *FavoriteServiceImpl) GetUserFavoriteVideoListFromDB(userId int64)(list []models.FavoriteList,err error){
 	favorites, err := f.favoriteDao.UserFavorites(userId)
 	if err != nil{
 		console.Error(err)
 		return
 	}
-
 	return favorites,nil
 }
 

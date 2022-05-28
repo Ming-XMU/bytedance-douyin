@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"douyin/models"
 	"douyin/services"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -12,7 +13,7 @@ var (
 
 type VideoListResponse struct {
 	Response
-	VideoList []Video `json:"video_list"`
+	VideoList []models.VideoVo `json:"video_list"`
 }
 
 // Publish check token then save upload file to public directory
@@ -37,6 +38,6 @@ func PublishList(c *gin.Context) {
 		Response: Response{
 			StatusCode: 0,
 		},
-		VideoList: DemoVideos,
+		VideoList: nil,
 	})
 }

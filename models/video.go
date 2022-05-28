@@ -33,3 +33,13 @@ type Video struct {
 func (v *Video) TableName() string {
 	return VideoTableName
 }
+
+type VideoVo struct {
+	Id            int64              `json:"id,omitempty"`
+	Author        UserMessage `json:"author"`
+	PlayUrl       string             `json:"play_url" json:"play_url,omitempty"`
+	CoverUrl      string             `json:"cover_url,omitempty"`
+	FavoriteCount int64              `json:"favorite_count,omitempty"`
+	CommentCount  int64              `json:"comment_count,omitempty"`
+	IsFavorite    bool               `json:"is_favorite,omitempty"`
+}
