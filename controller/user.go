@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync/atomic"
 )
 
@@ -64,6 +65,14 @@ func Register(c *gin.Context) {
 	if len(pwd) == 0 {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			Response: Response{StatusCode: 1, StatusMsg: "密码为空"},
+		})
+		return
+	}
+	//判断用户名是否违规
+	username_filter := tools.ReplaceSensitiveWord(username, 1, "*")
+	if strings.Contains(username_filter, "*") {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "username_filter 用户名存在违规字符"},
 		})
 		return
 	}
