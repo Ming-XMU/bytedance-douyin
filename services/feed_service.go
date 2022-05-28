@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/anqiansong/ketty/console"
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
 	"log"
@@ -63,14 +64,20 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	filename := filepath.Base(file.Filename)
 	finalName := fmt.Sprintf("%d_%s", userId, filename)
 	saveFile := filepath.Join("./public/video", finalName)
+	//check multiply
+	savePlayUrl := Show_Play_Url_Prefix + finalName
+	rowsAffected, err := f.feedDao.FindVideoByPlayUrl(savePlayUrl)
+	if rowsAffected > 0{
+		err = errors.New("video is existed...")
+		console.Warn("videoName:%s is existed",savePlayUrl)
+		return
+	}
 	//create video
 	if err = c.SaveUploadedFile(file, saveFile); err != nil {
-		//TODO log format
-		fmt.Println("create video failed:", err.Error())
+		console.Error(err)
 		err = errors.New("create video failed...")
 		return
 	}
-	//TODO check multiply
 
 	//Create CoverUrl
 	//cmd format :ffmpeg -i  1_mmexport1652668404330.mp4 -ss 00:00:00 -frames:v 1 out.jpg
@@ -80,35 +87,34 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	cmd := exec.Command("ffmpeg", "-i", playLocalUrl, "-ss", "00:00:00", "-frames:v", "1", coverLocalUrl)
 	err = cmd.Run()
 	if err != nil {
-		//TODO log format
-		fmt.Println("create cover failed:", err.Error())
+		console.Error(err)
 		//del file
 		err = os.Remove(saveFile)
 		if err != nil {
-			fmt.Println("file remove failed...")
+			console.Error(err)
 		}
 		err = errors.New("create cover failed..")
 		return
 	}
+	saveCoverUrl := Show_Cover_Url_Prefix + coverFile
 	//Save Db
 	video := &models.Video{
 		UserId:        userId,
-		PlayUrl:       Show_Play_Url_Prefix + finalName,
-		CoverUrl:      Show_Cover_Url_Prefix + coverFile,
+		PlayUrl:       savePlayUrl,
+		CoverUrl:      saveCoverUrl,
 		CommentCount:  0,
 		FavoriteCount: 0,
 		Title:         title,
 	}
 	_, err = f.feedDao.CreateFeed(video)
 	if err != nil {
-		//TODO log format
-		fmt.Println("create feed record failed : ", err.Error())
+		console.Error(err)
 		return
 	}
 	//cache
 	err = tools.RedisCacheFeed(video)
 	if err != nil {
-		fmt.Println("cache feed failed:", err.Error())
+		console.Error(err)
 		return
 	}
 	return
