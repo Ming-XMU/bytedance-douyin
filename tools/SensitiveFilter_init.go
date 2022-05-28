@@ -5,89 +5,41 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
-/**
-初始化敏感词库<br>
-将敏感词加入到HashMap中<br>
-构建DFA算法模型
-**/
+var (
+	tril *Trie
+)
 
-/**
- * 初始化敏感字库
- */
-func InitKeyWord() map[string]interface{} {
-	wordSet := readSensitiveWordFile()
-	wordMap := addSensitiveWordToHashMap(wordSet)
-	return wordMap
-}
-
-/**
- * 读取敏感词库中的内容，将内容添加到set集合中
- */
-func readSensitiveWordFile() []string {
-	set := make([]string, 0, 10)
-	app, _ := exec.LookPath(os.Args[0])
-	path := filepath.Dir(app) //获取当前程序执行路径
-	//	println("当前文件执行路径：" + path)
-	file := fmt.Sprintf("%s\\config\\sensitive_words.txt", path)
-	read, err := os.Open(file) //打开文件
-	defer read.Close()         //打开文件出错处理
-	if nil == err {
-		buff := bufio.NewReader(read)
-		for {
-			txt, err := buff.ReadString('\n') //以'\n'为结束符读入一行
-			if nil != err || io.EOF == err {
-				break
-			}
-			//将读取到的一行文件添加到数组中
-			// 去除空格
-			txt = strings.Replace(txt, "\t", "", -1)
-			// 去除换行符
-			txt = strings.Replace(txt, "\n", "", -1)
-
-			if "" != txt && "\n" != txt {
-				set = append(set, txt)
-			}
-		}
-	} else {
-		fmt.Println("err=", err)
+/// 过滤器初始化
+func Init(filename string) (err error) {
+	//
+	tril = NewTrie()
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Printf("敏感词字典文件读取失败")
+		return
 	}
-	return set
-}
+	defer file.Close()
+	// 从敏感词文件里面读取数据生成敏感词数据库
+	reader := bufio.NewReader(file)
+	for {
+		word, errRec := reader.ReadString('\n')
+		// 读取到最后一行 读取成功了
+		if errRec == io.EOF {
+			return
+		}
+		if errRec != nil {
+			err = errRec
+			return
+		}
 
-/**
- * 读取敏感词库，将敏感词放入HashSet中，构建一个DFA算法模型：<br>
- */
-func addSensitiveWordToHashMap(wordSet []string) map[string]interface{} {
-	var wordMap = make(map[string]interface{}, len(wordSet))
-	for _, word := range wordSet {
-		nowMap := wordMap
-		rs := []rune(word)
-		for i := 0; i < len(rs)-1; i++ {
-			keyChar := string(rs[i])
+		// 把读出的单词加入到敏感词库
+		err = tril.Add(word, nil)
 
-			//获取
-			tempMap := nowMap[keyChar]
-			//如果存在该key，直接赋值
-			if nil != tempMap {
-				nowMap = tempMap.(map[string]interface{})
-			} else {
-				//设置标志位
-				newMap := make(map[string]interface{}, len(rs))
-				newMap["isEnd"] = "0"
-				//添加到集合
-				nowMap[keyChar] = newMap
-				nowMap = newMap
-			}
-			//最后一个
-			if i == len(rs)-2 {
-				nowMap["isEnd"] = "1"
-			}
+		if err != nil {
+			return
 		}
 	}
-	return wordMap
+	return
 }

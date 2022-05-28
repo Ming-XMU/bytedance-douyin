@@ -1,125 +1,151 @@
 package tools
 
-import "strings"
+// 敏感词过滤系统
 
-const (
-	minMatchTYpe = 1  // 最小匹配规则
-	maxMatchType = 12 // 最大匹配规则
+import (
+	"strings"
 )
 
-var sensitiveWordMap map[string]interface{} = InitKeyWord()
-
-/**
- * 截取字符串,从起始位置截取指定长度
- */
-func SubString(str string, beginIndex, length int) (substr string) {
-	// 将字符串的转换成[]rune
-	rs := []rune(str)
-	lth := len(rs)
-
-	// 简单的越界判断
-	if beginIndex < 0 {
-		beginIndex = 0
-	}
-	if beginIndex >= lth {
-		beginIndex = lth
-	}
-	end := beginIndex + length
-	if end > lth {
-		end = lth
-	}
-	// 返回子串
-	return string(rs[beginIndex:end])
+type Node struct {
+	//rune表示一个utf8字符
+	char   rune
+	Data   interface{}
+	parent *Node
+	Depth  int
+	//childs 用来当前节点的所有孩子节点
+	childs map[rune]*Node
+	term   bool
 }
 
-/**
- * 检查文字中是否包含敏感字符，检查规则如下：
- * 如果存在，则返回敏感词字符的长度，不存在返回0
- */
-func CheckSensitiveWord(txt string, beginIndex int, matchType int) int {
-	//匹配标识数默认为0
-	var matchFlag int = 0
-	//敏感词结束标志位 用于敏感词只有1位的情况
-	var flag bool = false
-	var nowMap map[string]interface{} = sensitiveWordMap
-	rs := []rune(txt)
-myforLable:
-	for i := beginIndex; i < len(rs); i++ {
-		var word string = string(rs[i])
-		if nil != nowMap[word] {
-			//获取指定key
-			nowMap = nowMap[word].(map[string]interface{})
-			//存在，则判断是否为最后一个
-			if nil != nowMap {
-				//				fmt.Println("存在=", word)
-				//找到相应key，匹配标识+1
-				matchFlag++
+type Trie struct {
+	root *Node
+	size int
+}
 
-				//如果为最后一个匹配规则，结束循环，返回匹配标识数
-				if nil != nowMap["isEnd"] && "1" == nowMap["isEnd"].(string) {
-					//结束标识为为true
-					flag = true
-					//最小规则，直接返回，最大规则则还需继续查找
-					if minMatchTYpe == matchType {
-						break myforLable
-					}
-				}
-			} else { //不存在，直接返回
-				break myforLable
-			}
-		} else { //不存在，直接返回
-			break myforLable
+func NewNode() *Node {
+	return &Node{
+		childs: make(map[rune]*Node, 32),
+	}
+}
+
+func NewTrie() *Trie {
+	return &Trie{
+		root: NewNode(),
+	}
+}
+
+//假如我要把 敏感词： “我操”
+// Add("我操", nil)
+// Add("色情片", nil)
+func (p *Trie) Add(key string, data interface{}) (err error) {
+
+	key = strings.TrimSpace(key)
+	node := p.root
+	runes := []rune(key)
+	for _, r := range runes {
+		ret, ok := node.childs[r]
+		if !ok {
+			ret = NewNode()
+			ret.Depth = node.Depth + 1
+			ret.char = r
+			node.childs[r] = ret
 		}
+
+		node = ret
 	}
-	//长度必须大于等于1，为词
-	if matchFlag < 2 || !flag {
-		matchFlag = 0
-	}
-	return matchFlag
+
+	node.term = true
+	node.Data = data
+	return
 }
 
-/**
- * 获取文字中的敏感词
- */
-func getSensitiveWord(txt string, matchType int) []string {
-	sensitiveWordList := make([]string, 0, 10)
-	rs := []rune(txt)
-	for i := 0; i < len(rs); i++ {
-		//判断是否包含敏感字符
-		var length int = CheckSensitiveWord(txt, i, matchType)
-		if length > 0 {
-			sensitiveWordList = append(sensitiveWordList, SubString(txt, i, length))
-			i = i + length - 1
+// findNode("敏感词")
+func (p *Trie) findNode(key string) (result *Node) {
+
+	node := p.root
+	chars := []rune(key)
+	for _, v := range chars {
+		ret, ok := node.childs[v]
+		if !ok {
+			return
 		}
+
+		node = ret
 	}
-	return sensitiveWordList
+
+	result = node
+	return
 }
 
-/**
- * 获取替换字符串
- */
-func getReplaceChars(replaceChar string, length int) string {
-	var resultReplace = replaceChar
-	for i := 1; i < length; i++ {
-		resultReplace += replaceChar
-	}
-	return resultReplace
-}
+func (p *Trie) collectNode(node *Node) (result []*Node) {
 
-/**
- * 替换敏感字字符
- */
-func ReplaceSensitiveWord(txt string, matchType int, replaceChar string) string {
-	var resultTxt string = txt
-	//获取所有敏感词
-	set := getSensitiveWord(txt, matchType)
-	var replaceString string
-	for _, word := range set {
-		if "" == word {
+	if node == nil {
+		return
+	}
+
+	if node.term {
+		result = append(result, node)
+		return
+	}
+
+	var queue []*Node
+	queue = append(queue, node)
+
+	for i := 0; i < len(queue); i++ {
+		if queue[i].term {
+			result = append(result, queue[i])
 			continue
 		}
-		replaceString = getReplaceChars(replaceChar, len([]rune(word)))
-		resultTxt = strings.Replace(resultTxt, word, replaceString, -1)
+
+		for _, v1 := range queue[i].childs {
+			queue = append(queue, v1)
+		}
 	}
-	return resultTxt
+
+	return
+}
+
+func (p *Trie) PrefixSearch(key string) (result []*Node) {
+
+	node := p.findNode(key)
+	if node == nil {
+		return
+	}
+
+	result = p.collectNode(node)
+	return
+}
+
+// replace = "*"
+func (p *Trie) Check(text, replace string) (result string, hit bool) {
+
+	chars := []rune(text)
+	if p.root == nil {
+		return
+	}
+
+	var left []rune
+	node := p.root
+	start := 0
+	for index, v := range chars {
+		ret, ok := node.childs[v]
+		if !ok {
+			left = append(left, chars[start:index+1]...)
+			start = index + 1
+			node = p.root
+			continue
+		}
+
+		node = ret
+		if ret.term {
+			hit = true
+			node = p.root
+			left = append(left, ([]rune(replace))...)
+			start = index + 1
+			continue
+		}
+	}
+
+	result = string(left)
+	return
 }
