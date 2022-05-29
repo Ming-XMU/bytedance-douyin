@@ -9,6 +9,8 @@ import (
 func initRouter(r *gin.Engine) {
 	// public directory is used to serve static resources
 	r.Static("/static", "./public")
+	//后期修改为minio磁盘路径
+	//r.Static("/static", "/mnt/data")
 
 	apiRouter := r.Group("/douyin")
 	//register interceptor

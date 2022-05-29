@@ -14,10 +14,13 @@ import (
 )
 
 var (
-	MysqlPath string
-	RedisUrl  string
-	MQUrl     string
-	RedisPass string
+	MysqlPath       string
+	RedisUrl        string
+	MQUrl           string
+	RedisPass       string
+	Endpoint        string
+	AccessKeyID     string
+	SecretAccessKey string
 )
 
 // Init
@@ -31,15 +34,18 @@ func Init() {
 	LoadMysql(file)
 	LoadRedis(file)
 	LoadRabbitMQ(file)
+	LoadMinIO(file)
 	//开启mq监听
 	mq.InitMQ(MQUrl)
 	FollowQueueListen()
 	models.InitDB(MysqlPath)
 	models.InitRedis(RedisUrl, RedisPass)
+	models.InitMinio(Endpoint, AccessKeyID, SecretAccessKey)
+
 	initService()
 	//load sensitive
 	err = tools.Init("config/sensitive_words.txt")
-	if err != nil{
+	if err != nil {
 		console.Error(err)
 		panic(err.Error())
 	}
@@ -75,6 +81,16 @@ func LoadRabbitMQ(file *ini.File) {
 	DefaultHost := file.Section("rabbitmq").Key("Default_Host").String()
 	MQUrl = strings.Join([]string{"amqp://", MqName, ":", MqPassword, "@", Host, ":", Port, "/", DefaultHost}, "")
 	fmt.Println(MQUrl)
+}
+
+// LoadMinIO
+// 读取配置拼接minIO连接路径
+func LoadMinIO(file *ini.File) {
+	AccessKeyID = file.Section("minio").Key("AccessKeyID").String()
+	SecretAccessKey = file.Section("minio").Key("SecretAccessKey").String()
+	Host := file.Section("minio").Key("Host").String()
+	Port := file.Section("minio").Key("Port").String()
+	Endpoint = strings.Join([]string{Host, ":", Port}, "")
 }
 
 // 初始化service
