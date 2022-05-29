@@ -19,6 +19,8 @@ type FeedDao interface {
 	UpdateVideoFavoriteCount(videoId int64,count int)error
 	//check multiply video
 	FindVideoByPlayUrl(videoUrl string) (rowsAffected int64,err error)
+	//get videos by userid
+	GetUserVideos(userId int64)(list []*models.Video,err error)
 }
 type FeedDaoImpl struct {
 	db *gorm.DB
@@ -36,6 +38,13 @@ func(f *FeedDaoImpl)FindVideoByPlayUrl(videoUrl string) (rowsAffected int64,err 
 	var video models.Video
 	result := f.db.Where("play_url",videoUrl).First(&video)
 	return result.RowsAffected,result.Error
+}
+
+func(f *FeedDaoImpl)GetUserVideos(userId int64)(list []*models.Video,err error){
+	var userVideos []*models.Video
+	err = f.db.Debug().Where("user_id",userId).Find(&userVideos).Error
+	list = userVideos
+	return
 }
 //single create
 var (

@@ -30,8 +30,8 @@ const (
 	Play_Url_Path  = "D:/goProject/src/simple-demo/public/video/"
 	Cover_Url_Path = "D:/goProject/src/simple-demo/public/img/"
 	//TODO 上线修改为服务器的IP地址和端口
-	Show_Play_Url_Prefix  = "http://localhost:8080/static/video/"
-	Show_Cover_Url_Prefix = "http://localhost:8080/static/img/"
+	Show_Play_Url_Prefix  = "http://192.168.3.9:8080/static/video/"
+	Show_Cover_Url_Prefix = "http://192.168.3.9:8080/static/img/"
 
 	MaxTitleLength = 100
 	MinTitleLength = 10
@@ -43,6 +43,7 @@ type FeedService interface {
 	PublishAction(c *gin.Context) error
 	CreatVideoList(user int, latestTime int64) ([]models.VOVideo, int64)
 	GetAuthor(user, id int) (Author models.VOUser)
+	GetUserAllPublishVideos(userId int64)(videoList []models.VideoVo,err error)
 	//flush redis favourite
 	FlushRedisFavouriteActionCache(videoId int64, count int) error
 	FlushRedisFavouriteCount()
@@ -146,6 +147,35 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	return
+}
+
+func(f *FeedServiceImpl)GetUserAllPublishVideos(userId int64)(videoList []models.VideoVo,err error){
+
+	videos, err := f.feedDao.GetUserVideos(userId)
+	if err != nil{
+		console.Error(err)
+		return
+	}
+	videoList = make([]models.VideoVo,0)
+	info, err := GetUserService().UserInfo(fmt.Sprint(userId))
+	for _,v := range(videos){
+		videoList = append(videoList,models.VideoVo{
+			Id: v.ID,
+			Author: models.UserMessage{
+				Id: info.Id,
+				Name: info.Name,
+				FollowCount: info.FollowCount,
+				FollowerCount: info.FollowerCount,
+				IsFollow: false,
+			},
+			PlayUrl: v.PlayUrl,
+			CoverUrl: v.CoverUrl,
+			FavoriteCount: v.FavoriteCount,
+			CommentCount: v.CommentCount,
+			Title: v.Title,
+		})
+	}
+	return videoList,nil
 }
 
 func (f *FeedServiceImpl) FlushRedisFavouriteActionCache(videoId int64, count int) error {

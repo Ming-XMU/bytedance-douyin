@@ -3,8 +3,10 @@ package controller
 import (
 	"douyin/models"
 	"douyin/services"
+	"github.com/anqiansong/ketty/console"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 var (
@@ -34,10 +36,16 @@ func Publish(c *gin.Context) {
 
 // PublishList all users have same public video list
 func PublishList(c *gin.Context) {
+	user_id := c.Query("user_id")
+	parseInt, err := strconv.ParseInt(user_id, 10, 64)
+	if err != nil{
+		console.Error(err)
+	}
+	videos, err := FeeSerivce.GetUserAllPublishVideos(parseInt)
 	c.JSON(http.StatusOK, VideoListResponse{
 		Response: Response{
 			StatusCode: 0,
 		},
-		VideoList: nil,
+		VideoList: videos,
 	})
 }

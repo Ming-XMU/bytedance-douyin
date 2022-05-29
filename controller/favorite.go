@@ -3,6 +3,7 @@ package controller
 import (
 	"douyin/services"
 	"douyin/tools"
+	"github.com/anqiansong/ketty/console"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -47,18 +48,19 @@ func FavoriteAction(c *gin.Context) {
 
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
-	token := c.Query("token")
-	loginUser, err := tools.VeifyToken(token)
+	user_id := c.Query("user_id")
 	//get user favourite video
-
+	uId ,err:= strconv.ParseInt(user_id,10,64)
 	if err != nil{
+		console.Error(err)
 		c.JSON(http.StatusOK,Response{
 			StatusCode: -1,
 			StatusMsg: err.Error(),
 		})
 	}
-	list, err := FavouriteService.GetUserFavoriteVideoList(loginUser.UserId)
+	list, err := FavouriteService.GetUserFavoriteVideoList(uId)
 	if err != nil{
+		console.Error(err)
 		c.JSON(http.StatusOK,Response{
 			StatusCode: -1,
 			StatusMsg: err.Error(),
