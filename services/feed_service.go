@@ -291,6 +291,12 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 		} else {
 			Author.IsFollow, _ = redis.Bool(getIsFollow, err)
 		}
+		//如果视频作者为自己，默认设置为已关注状态
+		str := strconv.FormatInt(getuser.Id, 10)
+		toId, _ := strconv.Atoi(str)
+		if user == toId {
+			Author.IsFollow = true
+		}
 	}
 	return Author
 }
