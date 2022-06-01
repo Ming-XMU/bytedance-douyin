@@ -25,13 +25,10 @@ import "douyin/daos"
  * @Description: TODO
  **/
 const (
-	//TODO 绝对路径待修改
-	//producing: /root/douyin/video/  /root/douyin/img
-	Play_Url_Path  = "D:/goProject/src/simple-demo/public/video/"
-	Cover_Url_Path = "D:/goProject/src/simple-demo/public/img/"
-	//TODO 上线修改为服务器的IP地址和端口
-	Show_Play_Url_Prefix  = "http://192.168.3.9:8080/static/video/"
-	Show_Cover_Url_Prefix = "http://192.168.3.9:8080/static/img/"
+	Play_Url_Path  = "/go/src/simple-demo/public/video/"
+	Cover_Url_Path = "/go/src/simple-demo/public/img/"
+	Show_Play_Url_Prefix  = "http://120.78.238.68:8080/static/video/"
+	Show_Cover_Url_Prefix = "http://120.78.238.68:8080/static/img/"
 
 	MaxTitleLength = 100
 	MinTitleLength = 10
