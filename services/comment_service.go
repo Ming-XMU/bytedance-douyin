@@ -7,6 +7,7 @@ import (
 	"douyin/tools"
 	"encoding/json"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,6 +32,7 @@ func GetCommentService() CommentService {
 type CommentService interface {
 	CommentAction(userId, videoId, commentId int64, action int, commentText string) error
 	CommentList(userId, videoId int) ([]models.Comment, error)
+	GetCommentCount(videoId int64) int64
 }
 
 type CommentServiceImpl struct {
@@ -110,7 +112,7 @@ func (f *CommentServiceImpl) CommentAction(userId, videoId, commentId int64, act
 }
 
 func getCommentKey(videoId int64) string {
-	return strings.Join([]string{commentCacheName, string(videoId)}, "_")
+	return strings.Join([]string{commentCacheName, strconv.FormatInt(videoId, 10)}, "_")
 }
 
 //commentCdRedis 加载redis中comment缓存
@@ -144,9 +146,34 @@ func (f *CommentServiceImpl) commentIdCdRedis() error {
 		log.Println("getcommentidnext err:", err.Error())
 	}
 	conn := models.GetRec()
-	conn.Do("SET", "commentId", num) //TODO 这里要改为string？？
+	conn.Do("SET", "commentId", num)
 	conn.Do("EXPIRE", "commentId", 1800)
 	return nil
+}
+
+func (f *CommentServiceImpl) GetCommentCount(videoId int64) int64 {
+	// 先加载redis缓存
+	err := f.commentCdRedis(videoId)
+	if err != nil {
+		log.Println("com" + err.Error())
+		return 0
+	}
+	conn := models.GetRec()
+	defer conn.Close()
+
+	commentKey := getCommentKey(videoId)
+	commentNum, err := conn.Do("ZCARD", commentKey)
+	if err != nil { //读取缓存数据失败
+		log.Println("commentCount ZCARD error", err.Error())
+		//从数据库中获取
+		var video *models.Video
+		video, err = daos.GetVideoDao().FindById(videoId)
+		if err != nil {
+			return 0
+		}
+		return video.CommentCount
+	}
+	return commentNum.(int64)
 }
 
 //////////////////////////////////////////////////////

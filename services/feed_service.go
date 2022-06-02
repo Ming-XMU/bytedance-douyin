@@ -199,13 +199,13 @@ func (f *FeedServiceImpl) VideoCacheCdRedis(time int64) error {
 	if tools.RedisKeyExists("video_cache_set") {
 		return tools.RedisKeyFlush("video_cache_set")
 	}
-
 	videolist, err := f.feedDao.GetVideosByCreateAt(time)
 	if err != nil {
-
+		log.Println("get videos by creatAt failed", err.Error())
+		return err
 	}
 	for _, video := range videolist {
-		err = tools.RedisCacheFeed(video)
+		err = tools.RedisCacheFeed(&video)
 		if err != nil {
 			console.Error(err)
 			return err
@@ -229,13 +229,23 @@ func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.
 	}
 	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set", latestTime, 0, "limit", 0, 29))
 	if err != nil {
+		//redis读取出错，从数据库读取
 		log.Println("get redis video_cache failed,err:", err.Error())
-		return nil, err
+		VideoList, err = f.feedDao.GetVideosByCreateAt(latestTime)
+		if err != nil || len(VideoList) < 1 {
+			return nil, err
+		}
+		return VideoList, err
 	}
-	if videoCache == nil || len(videoCache) < 1 { //读不到redis数据
+	if videoCache == nil || len(videoCache) < 1 {
+		//读不到redis数据，从数据库读取
 		log.Println("video cache:", videoCache)
 		log.Println("redis no data")
-		return nil, err
+		VideoList, err = f.feedDao.GetVideosByCreateAt(latestTime)
+		if err != nil || len(VideoList) < 1 {
+			return nil, err
+		}
+		return VideoList, err
 	}
 	//遍历数据反序列化
 	for _, val := range videoCache {
@@ -255,15 +265,14 @@ func (f *FeedServiceImpl) CreatVideoList(user int, latestTime int64) (videolist 
 	if err != nil || videos == nil {
 		//fmt.Println("create video list get redis cache failed,err:", err.Error())
 		//fmt.Println("len of video cache: ", len(videos))
-
-		return models.VODemoVideos, time.Now().Unix() //获取不到redis缓存数据，直接返回demovideos
+		return models.VODemoVideos, time.Now().Unix() //从redis和mysql都获取不到数据，直接返回demovideos
 	}
 	for _, singlevideo := range videos {
 		videoret.Id = singlevideo.ID
 		videoret.CoverUrl = singlevideo.CoverUrl
 		videoret.PlayUrl = singlevideo.PlayUrl
-		videoret.CommentCount = singlevideo.CommentCount
-		videoret.FavoriteCount = singlevideo.FavoriteCount
+		videoret.CommentCount = GetCommentService().GetCommentCount(singlevideo.ID)
+		videoret.FavoriteCount = tools.GetFavoriteCount(singlevideo.ID)
 		//getuser, err := GetUserService().UserInfo(string(singlevideo.UserId))
 		//if err != nil {
 		//	fmt.Println("get authors failed,err: ", err.Error())

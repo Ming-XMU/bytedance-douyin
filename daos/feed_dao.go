@@ -22,7 +22,7 @@ type FeedDao interface {
 	//get videos by userid
 	GetUserVideos(userId int64) (list []*models.Video, err error)
 	// GetVideosByCreateAt get videos by create_at
-	GetVideosByCreateAt(time int64) (LastVideo []*models.Video, err error)
+	GetVideosByCreateAt(time int64) (LastVideo []models.Video, err error)
 }
 type FeedDaoImpl struct {
 	db *gorm.DB
@@ -48,7 +48,7 @@ func (f *FeedDaoImpl) GetUserVideos(userId int64) (list []*models.Video, err err
 	list = userVideos
 	return
 }
-func (f *FeedDaoImpl) GetVideosByCreateAt(time int64) (LastVideo []*models.Video, err error) {
+func (f *FeedDaoImpl) GetVideosByCreateAt(time int64) (LastVideo []models.Video, err error) {
 	err = f.db.Debug().Limit(30).Where("create_at<=？", time).Find(&LastVideo).Error
 	return LastVideo, err
 }
