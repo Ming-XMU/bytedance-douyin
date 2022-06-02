@@ -25,14 +25,13 @@ import "douyin/daos"
  * @Description: TODO
  **/
 const (
-	Play_Url_Path  = "/go/src/simple-demo/public/video/"
-	Cover_Url_Path = "/go/src/simple-demo/public/img/"
+	Play_Url_Path         = "/go/src/simple-demo/public/video/"
+	Cover_Url_Path        = "/go/src/simple-demo/public/img/"
 	Show_Play_Url_Prefix  = "http://120.78.238.68:8080/static/video/"
 	Show_Cover_Url_Prefix = "http://120.78.238.68:8080/static/img/"
 
 	MaxTitleLength = 100
 	MinTitleLength = 10
-
 )
 
 type FeedService interface {
@@ -40,21 +39,23 @@ type FeedService interface {
 	PublishAction(c *gin.Context) error
 	CreatVideoList(user int, latestTime int64) ([]models.VOVideo, int64)
 	GetAuthor(user, id int) (Author models.VOUser)
-	GetUserAllPublishVideos(userId int64)(videoList []models.VideoVo,err error)
+	GetUserAllPublishVideos(userId int64) (videoList []models.VideoVo, err error)
 	//flush redis favourite
 	FlushRedisFavouriteActionCache(videoId int64, count int) error
 	FlushRedisFavouriteCount()
+
+	VideoCacheCdRedis(time int64) error
 }
 type FeedServiceImpl struct {
 	feedDao daos.FeedDao
 }
 
-func(f *FeedServiceImpl) verifyTitle(title string) error{
+func (f *FeedServiceImpl) verifyTitle(title string) error {
 	if tools.VerifyParamsEmpty(title) {
 		return errors.New("title is empty..")
 	}
 	//check title length
-	if len(title) > MaxTitleLength || len(title) < MinTitleLength{
+	if len(title) > MaxTitleLength || len(title) < MinTitleLength {
 		return errors.New("title length is limit 10 ~ 100")
 	}
 	//check invalid input
@@ -69,7 +70,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//verify title
 	title := c.PostForm("title")
 	err = f.verifyTitle(title)
-	if err != nil{
+	if err != nil {
 		return
 	}
 	//get user id from token
@@ -78,7 +79,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	user, err := tools.RedisTokenKeyValue(tokenKey)
 	userId := user.UserId
 	file, err := c.FormFile("data")
-	if err != nil{
+	if err != nil {
 		console.Error(err)
 		return errors.New("get video data failed...")
 	}
@@ -94,9 +95,9 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//check multiply
 	savePlayUrl := Show_Play_Url_Prefix + finalName
 	rowsAffected, err := f.feedDao.FindVideoByPlayUrl(savePlayUrl)
-	if rowsAffected > 0{
+	if rowsAffected > 0 {
 		err = errors.New("video is existed...")
-		console.Warn("videoName:%s is existed",savePlayUrl)
+		console.Warn("videoName:%s is existed", savePlayUrl)
 		return
 	}
 	//create video
@@ -146,33 +147,33 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	return
 }
 
-func(f *FeedServiceImpl)GetUserAllPublishVideos(userId int64)(videoList []models.VideoVo,err error){
+func (f *FeedServiceImpl) GetUserAllPublishVideos(userId int64) (videoList []models.VideoVo, err error) {
 
 	videos, err := f.feedDao.GetUserVideos(userId)
-	if err != nil{
+	if err != nil {
 		console.Error(err)
 		return
 	}
-	videoList = make([]models.VideoVo,0)
+	videoList = make([]models.VideoVo, 0)
 	info, err := GetUserService().UserInfo(fmt.Sprint(userId))
-	for _,v := range(videos){
-		videoList = append(videoList,models.VideoVo{
+	for _, v := range videos {
+		videoList = append(videoList, models.VideoVo{
 			Id: v.ID,
 			Author: models.UserMessage{
-				Id: info.Id,
-				Name: info.Name,
-				FollowCount: info.FollowCount,
+				Id:            info.Id,
+				Name:          info.Name,
+				FollowCount:   info.FollowCount,
 				FollowerCount: info.FollowerCount,
-				IsFollow: false,
+				IsFollow:      false,
 			},
-			PlayUrl: v.PlayUrl,
-			CoverUrl: v.CoverUrl,
+			PlayUrl:       v.PlayUrl,
+			CoverUrl:      v.CoverUrl,
 			FavoriteCount: v.FavoriteCount,
-			CommentCount: v.CommentCount,
-			Title: v.Title,
+			CommentCount:  v.CommentCount,
+			Title:         v.Title,
 		})
 	}
-	return videoList,nil
+	return videoList, nil
 }
 
 func (f *FeedServiceImpl) FlushRedisFavouriteActionCache(videoId int64, count int) error {
@@ -194,6 +195,27 @@ func GetFeedService() FeedService {
 	return feedService
 }
 
+func (f *FeedServiceImpl) VideoCacheCdRedis(time int64) error {
+	if tools.RedisKeyExists("video_cache_set") {
+		return tools.RedisKeyFlush("video_cache_set")
+	}
+
+	videolist, err := f.feedDao.GetVideosByCreateAt(time)
+	if err != nil {
+
+	}
+	for _, video := range videolist {
+		err = tools.RedisCacheFeed(video)
+		if err != nil {
+			console.Error(err)
+			return err
+		}
+	}
+	_ = tools.RedisDoKV("EXPIRE", "video_cache_set", 1800)
+	//	return nil
+	return err
+}
+
 //GetJsonFeeCache 获取redis中缓存的视频数据
 //author: wechan
 func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.Video, err error) {
@@ -201,7 +223,10 @@ func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.
 	//连接redis
 	rec := models.GetRec()
 	//从redis获取数据
-	//unix := time.Now().Unix()
+	err = f.VideoCacheCdRedis(latestTime) //如果redis中没有数据，就从数据库重新加载redis缓存
+	if err != nil {
+		log.Println("VideoCacheCdRedis failed,err", err.Error())
+	}
 	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set", latestTime, 0, "limit", 0, 29))
 	if err != nil {
 		log.Println("get redis video_cache failed,err:", err.Error())
