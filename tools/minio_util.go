@@ -18,8 +18,9 @@ const (
 // @param bucketName 桶名称
 // @param objectName 文件名称
 // @param file	文件对象
+// @param contentType 文件数据类型 如：image/jpeg | video/mp4
 // @return error
-func UploadFileObjectToMinio(bucketName string, objectName string, file *multipart.FileHeader) error {
+func UploadFileObjectToMinio(bucketName string, objectName string, file *multipart.FileHeader, contentType string) error {
 	// 初使化 minio client对象
 	mic := models.GetMic()
 	// 创建一个桶
@@ -35,7 +36,6 @@ func UploadFileObjectToMinio(bucketName string, objectName string, file *multipa
 	}
 	defer src.Close()
 	//上传文件对象
-	contentType := "form-data"
 	_, err = mic.PutObject(ctx, bucketName, objectName, src, -1, minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
 		log.Println(err)
@@ -50,7 +50,7 @@ func UploadFileObjectToMinio(bucketName string, objectName string, file *multipa
 // @param bucketName	桶名称
 // @param objectName	存储到桶中的文件名	| 名称相同文件会覆盖
 // @param filepath		文件所在路径(包括文件名) 如 D:/upload/1.jpg
-// @param contentType	数据类型 如：image/jpeg
+// @param contentType	文件数据类型 如：image/jpeg | video/mp4
 // @return error
 func UploadFileToMinio(bucketName string, objectName string, filepath string, contentType string) error {
 	// 初使化 minio client对象
