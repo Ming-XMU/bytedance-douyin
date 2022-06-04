@@ -19,10 +19,19 @@ type CommentDao interface {
 	//GetcCommentIdNext() (num int64, err error)
 	GetCommentIdNext() (num int64, err error)
 	GetCommentByCommentId(commentId int) (*models.Comment, error)
+	GetCommentCountByVideoId(videoId int) (int64, error)
 }
 
 type CommentDaoImpl struct {
 	db *gorm.DB
+}
+
+func (c CommentDaoImpl) GetCommentCountByVideoId(videoId int) (int64, error) {
+	var count int64
+	if err := c.db.Debug().Where("video_id = ?", videoId).Count(&count).Error; err != nil {
+		return -1, err
+	}
+	return count, nil
 }
 
 func (c CommentDaoImpl) InsertComment(comment *models.Comment) error {
