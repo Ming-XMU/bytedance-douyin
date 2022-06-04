@@ -5,7 +5,6 @@ import (
 	"douyin/models"
 	"errors"
 	"github.com/gomodule/redigo/redis"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -181,7 +180,7 @@ func GetFavoriteCount(VideoId int64) int64 {
 	cacheName := DefaultVideoFavoriteCaches[key]
 	ret, err := conn.Do("HGET", cacheName, VideoId)
 	if ret == nil || err != nil { //获取点赞量失败
-		log.Println("HGET favoriteCount failed,error:", err.Error())
+		//log.Println("HGET favoriteCount failed,error:", err.Error())
 		//从数据库中获取
 		var video *models.Video
 		video, err = daos.GetVideoDao().FindById(VideoId)

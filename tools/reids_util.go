@@ -173,7 +173,7 @@ func RedisKeyExists(key interface{}) bool {
 	con := models.GetRec()
 	defer CloseConn(con)
 	do, _ := con.Do("EXISTS", key)
-	if do == 1 {
+	if do.(int64) == 1 {
 		return true
 	}
 	return false
