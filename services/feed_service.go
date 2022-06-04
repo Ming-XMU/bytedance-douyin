@@ -27,8 +27,8 @@ import "douyin/daos"
 const (
 	Play_Url_Path         = "/go/src/simple-demo/public/video/"
 	Cover_Url_Path        = "/go/src/simple-demo/public/img/"
-	Show_Play_Url_Prefix  = "http://124.71.45.168:9000/video/"
-	Show_Cover_Url_Prefix = "http://124.71.45.168:9000/img/"
+	Show_Play_Url_Prefix  = "https://static-1304359512.cos.ap-guangzhou.myqcloud.com/video/"
+	Show_Cover_Url_Prefix = "https://static-1304359512.cos.ap-guangzhou.myqcloud.com/img/"
 
 	MaxTitleLength = 100
 	MinTitleLength = 10
@@ -107,12 +107,12 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//create Minio Video
-	err = tools.UploadFileObjectToMinio("video", finalName, file, "video/mp4")
-	if err != nil {
-		console.Error(err)
-		err = errors.New("upload video to minio failed")
-		return
-	}
+	//err = tools.UploadFileObjectToMinio("video", finalName, file, "video/mp4")
+	//if err != nil {
+	//	console.Error(err)
+	//	err = errors.New("upload video to minio failed")
+	//	return
+	//}
 	//Create CoverUrl
 	//cmd format :ffmpeg -i  1_mmexport1652668404330.mp4 -ss 00:00:00 -frames:v 1 out.jpg
 	coverFile := finalName + ".jpg"
@@ -131,11 +131,22 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		return
 	}
 	//上传封面到minio
-	err = tools.UploadFileToMinio("img", coverFile, coverLocalUrl, "image/jpeg")
+	//err = tools.UploadFileToMinio("img", coverFile, coverLocalUrl, "image/jpeg")
+	//if err != nil {
+	//	console.Error(err)
+	//	err = errors.New("cover upload to minio failed")
+	//	return
+	//}
+	//上传视频和封面到cos存储桶
+	err = tools.UploadFileToCos(playLocalUrl, finalName, "video")
 	if err != nil {
-		console.Error(err)
-		err = errors.New("cover upload to minio failed")
-		return
+		err = errors.New("upload video to cos failed")
+		return err
+	}
+	err = tools.UploadFileToCos(coverLocalUrl, coverFile, "img")
+	if err != nil {
+		err = errors.New("upload img to cos failed")
+		return err
 	}
 	//如果视频封面成功上传到minio，移除本地视频和封面
 	err = os.Remove(coverLocalUrl)
