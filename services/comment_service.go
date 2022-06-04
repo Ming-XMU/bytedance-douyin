@@ -6,7 +6,7 @@ import (
 	"douyin/tools"
 	"encoding/json"
 	"errors"
-	"log"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"sync"
@@ -56,10 +56,16 @@ func (f *CommentServiceImpl) CommentAction(userId, videoId, commentId int64, act
 			Message:  commentText,
 			CreateAt: time.Now(),
 		}
-		removeRedisCommentCountKey(videoId)
+		err := removeRedisCommentCountKey(videoId)
+		if err != nil {
+			logrus.Errorln("removeRedisCommentCountKey is false by ", videoId)
+		}
 		return f.commentDao.InsertComment(comment)
 	} else if action == 2 {
-		removeRedisCommentCountKey(videoId)
+		err := removeRedisCommentCountKey(videoId)
+		if err != nil {
+			logrus.Errorln("removeRedisCommentCountKry is false by ", videoId)
+		}
 		return f.commentDao.DeleteComment(int(commentId))
 	}
 	return errors.New("action is error")
@@ -140,13 +146,11 @@ func (f *CommentServiceImpl) commentCdRedis(videoId int64) error {
 	if err != nil {
 		return err
 	}
-	conn := models.GetRec()
-	defer conn.Close()
 	for _, comment := range comments {
 		commentJson, _ := json.Marshal(comment)
-		conn.Do("ZADD", commentkey, comment.ID, commentJson)
+		_, _ = tools.RedisDo("ZADD", commentkey, comment.ID, commentJson)
 	}
-	conn.Do("EXPIRE", commentkey, 1800)
+	_, _ = tools.RedisDo("EXPIRE", commentkey, 1800)
 	return nil
 }
 
@@ -156,13 +160,12 @@ func (f *CommentServiceImpl) commentIdCdRedis() error {
 	if tools.RedisKeyExists("commentId") {
 		return tools.RedisKeyFlush("commentId")
 	}
-	num, err := daos.GetCommentDao().GetcCommentIdNext()
+	num, err := daos.GetCommentDao().GetCommentIdNext()
 	if err != nil {
-		log.Println("getcommentidnext err:", err.Error())
+		logrus.Errorln("getcommentnextid err :", err)
 	}
-	conn := models.GetRec()
-	conn.Do("SET", "commentId", num)
-	conn.Do("EXPIRE", "commentId", 1800)
+	_, _ = tools.RedisDo("SET", "commentId", num)
+	_, _ = tools.RedisDo("EXPIRE", "commentId", 1800)
 	return nil
 }
 
@@ -202,29 +205,23 @@ func (f *CommentServiceImpl) GetCommentCount(videoId int64) int64 {
 
 func addRedisCommentCountKey(videoId int64) (int64, error) {
 	commentKey := getCommentKey(videoId)
-	conn := models.GetRec()
-	defer conn.Close()
 	count, err := daos.GetCommentDao().GetCommentCountByVideoId(int(videoId))
 	if err != nil {
 		return -1, err
 	}
-	conn.Do("SET", commentKey, count)
+	_, _ = tools.RedisDo("SET", commentKey, count)
 	return count, nil
 }
 
 func removeRedisCommentCountKey(videoId int64) error {
 	commentKey := getCommentKey(videoId)
-	conn := models.GetRec()
-	defer conn.Close()
-	conn.Do("DEL", commentKey)
+	_, _ = tools.RedisDo("DEL", commentKey)
 	return nil
 }
 
 func getRedisCommentCountKey(videoId int64) (int64, error) {
 	commentKey := getCommentKey(videoId)
-	conn := models.GetRec()
-	defer conn.Close()
-	commentNum, err := conn.Do("GET", commentKey)
+	commentNum, err := tools.RedisDo("GET", commentKey)
 	if err != nil {
 		return 0, err
 	}
