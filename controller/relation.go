@@ -20,7 +20,7 @@ type UserListResponse struct {
 	UserList []models.UserMessage `json:"user_list"`
 }
 
-//@author cwh
+// RelationAction @author cwh
 // RelationAction no practical effect, just check if token is valid
 func RelationAction(c *gin.Context) {
 	//token验证
@@ -70,7 +70,7 @@ func RelationAction(c *gin.Context) {
 	}
 }
 
-//@author cwh
+// FollowList @author cwh
 //获取关注列表用户
 // FollowList all users have same follow list
 func FollowList(c *gin.Context) {
@@ -97,9 +97,9 @@ func FollowList(c *gin.Context) {
 	})
 }
 
-//@author cwh
+// FollowerList @author cwh
 //获取用户的粉丝列表
-// FollowerList all users have same follower list
+//all users have same follower list
 func FollowerList(c *gin.Context) {
 	//获取token
 	token := c.Query("token")

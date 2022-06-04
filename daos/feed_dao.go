@@ -13,13 +13,13 @@ import (
  **/
 
 type FeedDao interface {
-	//create feed record
+	// CreateFeed create feed record
 	CreateFeed(video *models.Video) (rowsAffected int64, err error)
-	//update video favourite count
+	// UpdateVideoFavoriteCount update video favourite count
 	UpdateVideoFavoriteCount(videoId int64, count int) error
-	//check multiply video
+	// FindVideoByPlayUrl check multiply video
 	FindVideoByPlayUrl(videoUrl string) (rowsAffected int64, err error)
-	//get videos by userid
+	// GetUserVideos get videos by userid
 	GetUserVideos(userId int64) (list []*models.Video, err error)
 	// GetVideosByCreateAt get videos by create_at
 	GetVideosByCreateAt(time int64) (LastVideo []models.Video, err error)

@@ -55,7 +55,7 @@ func (u *UserDaoImpl) FindByName(name string) (*models.User, error) {
 	return &user, nil
 }
 
-//通过主键查询最后一条记录
+// LastId 通过主键查询最后一条记录
 //返回当前表内的最大ID
 func (u *UserDaoImpl) LastId() int64 {
 	fmt.Println("yes is dao")
@@ -67,7 +67,7 @@ func (u *UserDaoImpl) LastId() int64 {
 	return user.Id
 }
 
-//@author cwh
+// FindById @author cwh
 //根据id查询对应的user
 func (u *UserDaoImpl) FindById(id int) (*models.User, error) {
 	var user models.User

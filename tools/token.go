@@ -40,11 +40,11 @@ type LoginUser struct {
 // @return string
 // @return error
 func CreateToken(user *models.User) (string, error) {
-	uuid, err := uuid.NewUUID()
+	uid, err := uuid.NewUUID()
 	if err != nil {
 		return "", err
 	}
-	tokenKey := LoginTokenKey + uuid.String()
+	tokenKey := LoginTokenKey + uid.String()
 
 	//查找是否存在映射
 	do, err := RedisDo("HGET", TokenUserHash, user.Id)
@@ -174,7 +174,7 @@ func VeifyToken(token string) (*LoginUser, error) {
 	fmt.Printf("loginUserStatus = %d", loginUser.Status)
 	//判断loginUser登录状态
 	if loginUser.Status == 1 {
-		return nil, errors.New("Your account is already logged in elsewhere")
+		return nil, errors.New("your account is already logged in elsewhere")
 	}
 	//过期时间刷新
 	expireTime := loginUser.ExpiresAt

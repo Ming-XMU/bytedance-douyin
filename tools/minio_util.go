@@ -4,6 +4,7 @@ import (
 	"context"
 	"douyin/models"
 	"github.com/minio/minio-go/v7"
+	"github.com/sirupsen/logrus"
 	"log"
 	"mime/multipart"
 )
@@ -34,11 +35,16 @@ func UploadFileObjectToMinio(bucketName string, objectName string, file *multipa
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer func(src multipart.File) {
+		err := src.Close()
+		if err != nil {
+			logrus.Errorln(err.Error())
+		}
+	}(src)
 	//上传文件对象
 	_, err = mic.PutObject(ctx, bucketName, objectName, src, -1, minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
-		log.Println(err)
+		logrus.Errorln(err.Error())
 		return err
 	}
 	return nil
@@ -66,7 +72,7 @@ func UploadFileToMinio(bucketName string, objectName string, filepath string, co
 	if err != nil {
 		return err
 	}
-	log.Printf("Successfully uploaded %s of size %d\n", objectName, n.Size)
+	log.Println("Successfully uploaded %s of size %d\n", objectName, n.Size)
 	return nil
 }
 
@@ -84,7 +90,7 @@ func createBucket(bucketName string, mic *minio.Client, ctx context.Context) err
 		exists, err1 := mic.BucketExists(ctx, bucketName)
 		if err1 == nil && exists {
 			//之前已创建桶,正常返回
-			log.Printf("We already own %s\n", bucketName)
+			log.Println("We already own %s\n", bucketName)
 			return nil
 		} else {
 			//其他错误
@@ -92,6 +98,6 @@ func createBucket(bucketName string, mic *minio.Client, ctx context.Context) err
 		}
 	}
 	//桶创建成功，正常返回
-	log.Printf("Successfully created %s\n", bucketName)
+	log.Println("Successfully created %s\n", bucketName)
 	return nil
 }

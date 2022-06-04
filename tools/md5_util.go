@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-//给字符串生成md5
+// Md5Util 给字符串生成md5
 //@params password String类型 需要加密的字符串
 //@params salt String类型 加密的盐
 //@return md5str 返回md5码

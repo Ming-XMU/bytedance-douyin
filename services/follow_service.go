@@ -81,7 +81,7 @@ func (f *FollowServiceImpl) Action(userId string, toUserId string, actionType st
 	return nil
 }
 
-//@author cwh
+// RedisAction @author cwh
 //关注操作时，对redis的操作
 func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) error {
 	//查询对应缓存，没有便加载
@@ -170,7 +170,7 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 	return nil
 }
 
-//@author cwh
+// UserFollowInfo @author cwh
 //更新user的关注信息，返回前端需求的格式
 func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) *models.UserMessage {
 	//刷新自己的关注列表
@@ -205,7 +205,7 @@ func (f *FollowServiceImpl) setMessageCount(userId int64, message *models.UserMe
 	}
 }
 
-//@author cwh
+// UserFollowList @author cwh
 //查询用户的关注列表信息
 func (f *FollowServiceImpl) UserFollowList(userId string) ([]models.UserMessage, error) {
 	//缓存处理，是否加载
@@ -235,7 +235,7 @@ func (f *FollowServiceImpl) UserFollowList(userId string) ([]models.UserMessage,
 	return res, nil
 }
 
-//@author cwh
+// UserFollowerList @author cwh
 //查询用户的粉丝列表信息
 func (f *FollowServiceImpl) UserFollowerList(userId string) ([]models.UserMessage, error) {
 	//缓存处理，是否加载

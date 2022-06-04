@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/anqiansong/ketty/console"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"sync"
 )
@@ -29,7 +30,7 @@ func GetFavoriteService() FavoriteService {
 type FavoriteService interface {
 	FavoriteAction(userId int64, videoId int64, acton int) error
 	FavoriteJudge(userId, videoId int) bool
-	//Get User Favorite Video List
+	// GetUserFavoriteVideoList Get User Favorite Video List
 	GetUserFavoriteVideoList(videoId int64) (list []models.VideoVo, err error)
 }
 
@@ -37,7 +38,7 @@ type FavoriteServiceImpl struct {
 	favoriteDao daos.FavoriteDao
 }
 
-//@author cwh
+// FavoriteAction @author cwh
 //@userId 用户id
 //@videoId 视频id
 //@action 1点赞，2取消
@@ -80,9 +81,15 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 	if err != nil {
 		//Roll Back
 		if action == 1 {
-			tools.RedisCacheCancelFavorite(favorite)
+			_, err := tools.RedisCacheCancelFavorite(favorite)
+			if err != nil {
+				logrus.Errorln("cache cancel favorite is false by", favorite)
+			}
 		} else if action == 2 {
-			tools.RedisCacheFavorite(favorite)
+			_, err := tools.RedisCacheFavorite(favorite)
+			if err != nil {
+				logrus.Errorln("cache favorite is false by", favorite)
+			}
 		}
 		console.Error(err)
 		return err
@@ -131,7 +138,7 @@ func (f *FavoriteServiceImpl) GetUserFavoriteVideoList(userId int64) (list []mod
 	return
 }
 
-//get favorite video from db
+// GetUserFavoriteVideoListFromDB get favorite video from db
 func (f *FavoriteServiceImpl) GetUserFavoriteVideoListFromDB(userId int64) (list []models.FavoriteList, err error) {
 	favorites, err := f.favoriteDao.UserFavorites(userId)
 	if err != nil {

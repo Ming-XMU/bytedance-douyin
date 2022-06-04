@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/sirupsen/logrus"
 )
 
 /**
@@ -13,7 +14,7 @@ import (
  * @Description: TODO
  **/
 const (
-	//video cache name
+	// VideoCacheName video cache name
 	VideoCacheName = "video_cache_set"
 	//range:0 ~ 29
 	VideoCacheMaxLimit = 29
@@ -22,10 +23,10 @@ const (
 	DefaultExpirationTime int = 1800
 )
 
-//cache feed
+// RedisCacheFeed cache feed
 func RedisCacheFeed(video *models.Video) (err error) {
 	con := models.GetRec()
-	defer con.Close()
+	defer CloseConn(con)
 	//video json
 	jsonResult, err := json.Marshal(&video)
 	if err != nil {
@@ -43,7 +44,7 @@ func RedisCacheFeed(video *models.Video) (err error) {
 // @return error
 func RedisCacheTokenKey(k string, u *LoginUser, t int) error {
 	conn := models.GetRec()
-	defer conn.Close()
+	defer CloseConn(conn)
 	_, err := conn.Do("HMSET", redis.Args{}.Add(k).AddFlat(u)...)
 	if err != nil {
 		return err
@@ -63,7 +64,7 @@ func RedisCacheTokenKey(k string, u *LoginUser, t int) error {
 // @return err
 func RedisTokenKeyValue(k string) (u *LoginUser, err error) {
 	conn := models.GetRec()
-	defer conn.Close()
+	defer CloseConn(conn)
 	v, err := redis.Values(conn.Do("HGETALL", k))
 	if err != nil {
 		fmt.Println("redis.Values() err: ", err)
@@ -85,7 +86,7 @@ func RedisTokenKeyValue(k string) (u *LoginUser, err error) {
 // @return error
 func RedisKeyFlush(k interface{}) error {
 	conn := models.GetRec()
-	defer conn.Close()
+	defer CloseConn(conn)
 	_, err := conn.Do("expire", k, DefaultExpirationTime)
 	if err != nil {
 		return err
@@ -102,7 +103,7 @@ func RedisKeyFlush(k interface{}) error {
 func RedisCheckKey(k string) (bool, error) {
 	//当key不存在时，返回-2，当key存在但没有设置剩余生存时间时，返回-1。否则，以毫秒为单位，返回key的剩余生存时间
 	conn := models.GetRec()
-	defer conn.Close()
+	defer CloseConn(conn)
 	r, err := redis.Int(conn.Do("TTL", k))
 	if err != nil {
 		return false, err
@@ -121,7 +122,7 @@ func RedisCheckKey(k string) (bool, error) {
 func RedisDeleteKey(k string) error {
 	//当key不存在时，返回-2，当key存在但没有设置剩余生存时间时，返回-1。否则，以毫秒为单位，返回key的剩余生存时间
 	conn := models.GetRec()
-	defer conn.Close()
+	defer CloseConn(conn)
 	_, err := conn.Do("DEL", k)
 	if err != nil {
 		return err
@@ -129,11 +130,11 @@ func RedisDeleteKey(k string) error {
 	return nil
 }
 
-//@author cwh
+// RedisDoKV @author cwh
 //redis操作：action name value
 func RedisDoKV(action string, name, value interface{}) error {
 	con := models.GetRec()
-	defer con.Close()
+	defer CloseConn(con)
 	_, err := con.Do(action, name, value)
 	if err != nil {
 		return err
@@ -141,11 +142,11 @@ func RedisDoKV(action string, name, value interface{}) error {
 	return nil
 }
 
-//@author cwh
+// RedisDoHash @author cwh
 //redis操作：action name key value
 func RedisDoHash(action string, name, key, value interface{}) error {
 	con := models.GetRec()
-	defer con.Close()
+	defer CloseConn(con)
 	_, err := con.Do(action, name, key, value)
 	if err != nil {
 		return err
@@ -153,20 +154,24 @@ func RedisDoHash(action string, name, key, value interface{}) error {
 	return nil
 }
 
-//@author cwh
+// RedisDo @author cwh
 //redis操作，切片传值，啥都可以做
+//包装了Do方法，多了错误处理
 func RedisDo(action string, values ...interface{}) (reply interface{}, err error) {
 	con := models.GetRec()
-	defer con.Close()
+	defer CloseConn(con)
 	do, err := con.Do(action, values...)
+	if err != nil {
+		logrus.Errorln("redsi do:", action, values, "is false")
+	}
 	return do, err
 }
 
-//@author cwh
+// RedisKeyExists @author cwh
 //key存在判断
 func RedisKeyExists(key interface{}) bool {
 	con := models.GetRec()
-	defer con.Close()
+	defer CloseConn(con)
 	do, _ := con.Do("EXISTS", key)
 	if do == 1 {
 		return true
@@ -182,7 +187,7 @@ func RedisKeyExists(key interface{}) bool {
 // @return err
 func GetAllKV(hash string) (m map[string]string, err error) {
 	con := models.GetRec()
-	defer con.Close()
+	defer CloseConn(con)
 	result, err := redis.Values(con.Do("hgetall", hash))
 	if err != nil {
 		return nil, err
@@ -199,4 +204,12 @@ func GetAllKV(hash string) (m map[string]string, err error) {
 		}
 	}
 	return m, nil
+}
+
+// CloseConn 包装close方法,多了错误处理
+func CloseConn(conn redis.Conn) {
+	err := conn.Close()
+	if err != nil {
+		logrus.Errorln(err.Error())
+	}
 }

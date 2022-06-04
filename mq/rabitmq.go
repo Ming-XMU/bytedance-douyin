@@ -2,6 +2,7 @@ package mq
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"log"
 )
@@ -58,15 +59,21 @@ func NewRabbitMQ(queueName string, exchange string, key string, mqUrl string) *R
 // Destroy
 //断开channel 和 connection
 func (r *RabbitMQ) Destroy() {
-	r.channel.Close()
-	r.conn.Close()
+	err := r.channel.Close()
+	if err != nil {
+		logrus.Errorln(err)
+	}
+	err = r.conn.Close()
+	if err != nil {
+		logrus.Errorln(err)
+	}
 }
 
 //错误处理函数
 func (r *RabbitMQ) failOnErr(err error, message string) {
 	if err != nil {
-		log.Fatalf("%s:%s", message, err)
-		panic(fmt.Sprintf("%s:%s", message, err))
+		logrus.Fatalf("%s:%s", message, err)
+		logrus.Panicln(fmt.Sprintf("%s:%s", message, err))
 	}
 }
 

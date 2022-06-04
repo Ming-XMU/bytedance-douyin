@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"strconv"
 )
-var(
+
+var (
 	FavouriteService services.FavoriteService
 )
-//@author cwh
+
+// FavoriteAction @author cwh
 // FavoriteAction no practical effect, just check if token is valid--点赞
 func FavoriteAction(c *gin.Context) {
 	//权限鉴定
@@ -48,22 +50,22 @@ func FavoriteAction(c *gin.Context) {
 
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
-	user_id := c.Query("user_id")
+	userId := c.Query("user_id")
 	//get user favourite video
-	uId ,err:= strconv.ParseInt(user_id,10,64)
-	if err != nil{
+	uId, err := strconv.ParseInt(userId, 10, 64)
+	if err != nil {
 		console.Error(err)
-		c.JSON(http.StatusOK,Response{
+		c.JSON(http.StatusOK, Response{
 			StatusCode: -1,
-			StatusMsg: err.Error(),
+			StatusMsg:  err.Error(),
 		})
 	}
 	list, err := FavouriteService.GetUserFavoriteVideoList(uId)
-	if err != nil{
+	if err != nil {
 		console.Error(err)
-		c.JSON(http.StatusOK,Response{
+		c.JSON(http.StatusOK, Response{
 			StatusCode: -1,
-			StatusMsg: err.Error(),
+			StatusMsg:  err.Error(),
 		})
 	}
 	c.JSON(http.StatusOK, VideoListResponse{

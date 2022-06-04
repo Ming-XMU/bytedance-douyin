@@ -9,7 +9,7 @@ import (
 	"github.com/anqiansong/ketty/console"
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
-	"log"
+	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,12 +35,12 @@ const (
 )
 
 type FeedService interface {
-	//public video
+	// PublishAction public video
 	PublishAction(c *gin.Context) error
 	CreatVideoList(user int, latestTime int64) ([]models.VOVideo, int64)
 	GetAuthor(user, id int) (Author models.VOUser)
 	GetUserAllPublishVideos(userId int64) (videoList []models.VideoVo, err error)
-	//flush redis favourite
+	// FlushRedisFavouriteActionCache flush redis favourite
 	FlushRedisFavouriteActionCache(videoId int64, count int) error
 	FlushRedisFavouriteCount()
 
@@ -52,7 +52,7 @@ type FeedServiceImpl struct {
 
 func (f *FeedServiceImpl) verifyTitle(title string) error {
 	if tools.VerifyParamsEmpty(title) {
-		return errors.New("title is empty..")
+		return errors.New("title is empty")
 	}
 	//check title length
 	if len(title) > MaxTitleLength || len(title) < MinTitleLength {
@@ -61,7 +61,7 @@ func (f *FeedServiceImpl) verifyTitle(title string) error {
 	//check invalid input
 	_, isReplaced := tools.Replace(title, "*")
 	if isReplaced {
-		return errors.New("input vaild..")
+		return errors.New("input vaild")
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	file, err := c.FormFile("data")
 	if err != nil {
 		console.Error(err)
-		return errors.New("get video data failed...")
+		return errors.New("get video data failed")
 	}
 	//create play_url
 	filename := filepath.Base(file.Filename)
@@ -96,14 +96,14 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	savePlayUrl := Show_Play_Url_Prefix + finalName
 	rowsAffected, err := f.feedDao.FindVideoByPlayUrl(savePlayUrl)
 	if rowsAffected > 0 {
-		err = errors.New("video is existed...")
+		err = errors.New("video is existed")
 		console.Warn("videoName:%s is existed", savePlayUrl)
 		return
 	}
 	//create video
 	if err = c.SaveUploadedFile(file, saveFile); err != nil {
 		console.Error(err)
-		err = errors.New("create video failed...")
+		err = errors.New("create video failed")
 		return
 	}
 	//create Minio Video
@@ -127,7 +127,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		if err != nil {
 			console.Error(err)
 		}
-		err = errors.New("create cover failed..")
+		err = errors.New("create cover failed")
 		return
 	}
 	//上传封面到minio
@@ -227,7 +227,7 @@ func (f *FeedServiceImpl) VideoCacheCdRedis(time int64) error {
 	}
 	videolist, err := f.feedDao.GetVideosByCreateAt(time)
 	if err != nil {
-		log.Println("get videos by creatAt failed", err.Error())
+		logrus.Errorln("get videos by creatAt failed", err.Error())
 		return err
 	}
 	for _, video := range videolist {
@@ -251,12 +251,12 @@ func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.
 	//从redis获取数据
 	err = f.VideoCacheCdRedis(latestTime) //如果redis中没有数据，就从数据库重新加载redis缓存
 	if err != nil {
-		log.Println("VideoCacheCdRedis failed,err", err.Error())
+		logrus.Errorln("VideoCacheCdRedis failed,err", err.Error())
 	}
 	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set", latestTime, 0, "limit", 0, 29))
 	if err != nil {
 		//redis读取出错，从数据库读取
-		log.Println("get redis video_cache failed,err:", err.Error())
+		logrus.Errorln("get redis video_cache failed,err:", err.Error())
 		VideoList, err = f.feedDao.GetVideosByCreateAt(latestTime)
 		if err != nil || len(VideoList) < 1 {
 			return nil, err
@@ -265,8 +265,7 @@ func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.
 	}
 	if videoCache == nil || len(videoCache) < 1 {
 		//读不到redis数据，从数据库读取
-		log.Println("video cache:", videoCache)
-		log.Println("redis no data")
+		logrus.Warnln("video cache is no get:", videoCache)
 		VideoList, err = f.feedDao.GetVideosByCreateAt(latestTime)
 		if err != nil || len(VideoList) < 1 {
 			return nil, err
@@ -333,7 +332,7 @@ func (f *FeedServiceImpl) CreatVideoList(user int, latestTime int64) (videolist 
 func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 	getuser, err := GetUserService().UserInfo(strconv.Itoa(id))
 	if err != nil {
-		fmt.Println("get authors failed,err: ", err.Error())
+		logrus.Errorln("get authors failed,err: ", user, err.Error())
 		return models.VODemoUser
 	}
 	Author.Id = getuser.Id
@@ -346,7 +345,7 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 		//Author.IsFollow, err = daos.GetFollowDao().JudgeIsFollow(user, int(getuser.Id))
 		getIsFollow, err := tools.RedisDo("sismember", getFollowKey(strconv.Itoa(user)), getuser.Id)
 		if err != nil {
-			log.Println("feed 数据库读取follow出错", err.Error())
+			logrus.Errorln("feed 数据库读取follow出错", err.Error())
 			Author.IsFollow = false //数据库读取follow出错时，使用默认值false
 		} else {
 			Author.IsFollow, _ = redis.Bool(getIsFollow, err)
@@ -361,14 +360,17 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 	return Author
 }
 
-//flush redis favourite cache
+// FlushRedisFavouriteCount flush redis favourite cache
 func (f *FeedServiceImpl) FlushRedisFavouriteCount() {
 	//清空删除缓存
-	tools.FavouriteRateLimitDel()
+	err := tools.FavouriteRateLimitDel()
+	if err != nil {
+		logrus.Errorln("favouriteRateLimitDel is false")
+	}
 	for _, cacheName := range tools.DefaultVideoCacheList {
 		kv, err := tools.GetAllKV(cacheName)
 		if err != nil {
-			fmt.Println("flush error occured,cacheName :", cacheName)
+			logrus.Errorln("flush error occured,cacheName :", cacheName)
 		}
 		for k, v := range kv {
 			//parse int

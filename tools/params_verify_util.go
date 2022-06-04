@@ -6,17 +6,17 @@ package tools
  * @Description: TODO
  **/
 
-//校验字符串参数
-func VerifyParamsEmpty(strs ...string) bool{
-	for _,str := range strs{
-		if emptyVerify(str){
+// VerifyParamsEmpty 校验字符串参数
+func VerifyParamsEmpty(strs ...string) bool {
+	for _, str := range strs {
+		if emptyVerify(str) {
 			return true
 		}
 	}
 	return false
 }
-func emptyVerify(str string) bool{
-	if str == ""{
+func emptyVerify(str string) bool {
+	if str == "" {
 		return true
 	}
 	return false

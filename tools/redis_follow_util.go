@@ -28,8 +28,8 @@ func getFollowLimitKey(userId int64) string {
 // @return error
 func IsActionLimit(userId int64) (bool, error) {
 	rec := models.GetRec()
-	defer rec.Close()
-	uuid, err := uuid.NewUUID()
+	defer CloseConn(rec)
+	uid, err := uuid.NewUUID()
 	if err != nil {
 		return false, err
 	}
@@ -46,7 +46,7 @@ func IsActionLimit(userId int64) (bool, error) {
 		"	return 1\n" +
 		"end"
 	script := redis.NewScript(1, luaScript)
-	res, err := script.Do(rec, getFollowLimitKey(userId), pre, cur, followLimitNum, uuid.String(), followExpireTime)
+	res, err := script.Do(rec, getFollowLimitKey(userId), pre, cur, followLimitNum, uid.String(), followExpireTime)
 	if err != nil {
 		return false, err
 	}

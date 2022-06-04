@@ -82,7 +82,7 @@ func TokenVerifyVerifyInterceptor() gin.HandlerFunc {
 	}
 }
 
-//different method get token
+// GetToken different method get token
 func GetToken(context *gin.Context) string {
 	token := context.Query("token")
 	if tools.VerifyParamsEmpty(token) {

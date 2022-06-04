@@ -6,7 +6,7 @@ import (
 	"douyin/mq"
 	"douyin/tools"
 	"encoding/json"
-	"log"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,6 +47,7 @@ func (f *CommentServiceImpl) CommentList(userId, videoId int) ([]models.Comment,
 	}
 	return comments, nil
 }
+
 func (f *CommentServiceImpl) CommentAction(userId, videoId, commentId int64, action int, commentText string) error {
 	comment := &models.Comment{ //对应数据库的comment表
 		ID:       commentId,
@@ -61,7 +62,7 @@ func (f *CommentServiceImpl) CommentAction(userId, videoId, commentId int64, act
 	}
 	jsonMsg, err := json.Marshal(commentAction)
 	if err != nil {
-		log.Println("mq pre marshal failed" + err.Error())
+		logrus.Errorln("mq pre marshal failed", err.Error())
 		return err
 	}
 	rabbitMqSimple := mq.NewRabbitMQSimple("commentActionQueue", "amqp://admin:123456@120.78.238.68:5672/default_host")
@@ -70,11 +71,9 @@ func (f *CommentServiceImpl) CommentAction(userId, videoId, commentId int64, act
 	err = f.commentCdRedis(videoId)
 	err = f.commentIdCdRedis()
 	if err != nil {
-		log.Println("缓存错误")
+		logrus.Errorln("评论缓存加载失败，视频id:", videoId)
 		return err
 	}
-	conn := models.GetRec()
-	defer conn.Close()
 
 	commentKey := getCommentKey(videoId)
 
@@ -84,28 +83,31 @@ func (f *CommentServiceImpl) CommentAction(userId, videoId, commentId int64, act
 		commentJSON, _ := json.Marshal(comment)
 		//TODO 错误处理
 		//获取commentID并且维护
-		getcommentId, _ := conn.Do("get", "commentId")
+		getcommentId, _ := tools.RedisDo("get", "commentId")
 		commentId = getcommentId.(int64)
-		conn.Do("incr", "commentId") //评论后redis中的commentId加1进行维护
+		//评论后redis中的commentId加1进行维护
+		_, _ = tools.RedisDo("incr", "commentId")
 		// 将发布的评论信息存入redis
-		conn.Do("ZADD", commentKey, commentId, commentJSON)
+		_, _ = tools.RedisDo("ZADD", commentKey, commentId, commentJSON)
 	} else if action == 2 {
 		//删除redis中的评论
 		//根据commentid 删除redis评论信息
-		conn.Do("ZREMBYSCORE", commentKey, commentId, commentId) //根据commentId删除元素
+		_, _ = tools.RedisDo("ZREMBYSCORE", commentKey, commentId, commentId)
+		//根据commentId删除元素
 	}
 	err = rabbitMqSimple.PublishSimple(string(jsonMsg))
 	if err != nil {
 		//存入mq失败，要回滚
 		if action == 1 {
-			conn.Do("ZREMBYSCORE", commentKey, commentId, commentId) //根据commentId删除元素
-			conn.Do("decr", "commentId")
+			//根据commentId删除元素
+			_, _ = tools.RedisDo("ZREMBYSCORE", commentKey, commentId, commentId)
+			_, _ = tools.RedisDo("decr", "commentId")
 		} else if action == 2 {
 			// redis中恢复comment信息
 			comment, _ := f.commentDao.GetCommentByCommentId(int(commentId))
 			//数据类型使用zset，这里需要考虑到评论时间的问题
 			commentJSON, _ := json.Marshal(comment)
-			conn.Do("ZADD", commentKey, commentId, commentJSON)
+			_, _ = tools.RedisDo("ZADD", commentKey, commentId, commentJSON)
 		}
 	}
 	return err
@@ -125,13 +127,11 @@ func (f *CommentServiceImpl) commentCdRedis(videoId int64) error {
 	if err != nil {
 		return err
 	}
-	conn := models.GetRec()
-	defer conn.Close()
 	for _, comment := range comments {
 		commentJson, _ := json.Marshal(comment)
-		conn.Do("ZADD", commentkey, comment.ID, commentJson)
+		_, _ = tools.RedisDo("ZADD", commentkey, comment.ID, commentJson)
 	}
-	conn.Do("EXPIRE", commentkey, 1800)
+	_, _ = tools.RedisDo("EXPIRE", commentkey, 1800)
 	return nil
 }
 
@@ -141,13 +141,12 @@ func (f *CommentServiceImpl) commentIdCdRedis() error {
 	if tools.RedisKeyExists("commentId") {
 		return tools.RedisKeyFlush("commentId")
 	}
-	num, err := daos.GetCommentDao().GetcCommentIdNext()
+	num, err := daos.GetCommentDao().GetCommentIdNext()
 	if err != nil {
-		log.Println("getcommentidnext err:", err.Error())
+		logrus.Errorln("getcommentnextid err :", err)
 	}
-	conn := models.GetRec()
-	conn.Do("SET", "commentId", num)
-	conn.Do("EXPIRE", "commentId", 1800)
+	_, _ = tools.RedisDo("SET", "commentId", num)
+	_, _ = tools.RedisDo("EXPIRE", "commentId", 1800)
 	return nil
 }
 
@@ -155,16 +154,14 @@ func (f *CommentServiceImpl) GetCommentCount(videoId int64) int64 {
 	// 先加载redis缓存
 	err := f.commentCdRedis(videoId)
 	if err != nil {
-		log.Println("com" + err.Error())
+		logrus.Errorln(videoId, ":comment cd redis is false", err.Error())
 		return 0
 	}
-	conn := models.GetRec()
-	defer conn.Close()
 
 	commentKey := getCommentKey(videoId)
-	commentNum, err := conn.Do("ZCARD", commentKey)
-	if err != nil { //读取缓存数据失败
-		log.Println("commentCount ZCARD error", err.Error())
+	commentNum, err := tools.RedisDo("ZCARD", commentKey)
+	if err != nil {
+		//读取缓存数据失败
 		//从数据库中获取
 		var video *models.Video
 		video, err = daos.GetVideoDao().FindById(videoId)

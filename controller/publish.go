@@ -36,9 +36,9 @@ func Publish(c *gin.Context) {
 
 // PublishList all users have same public video list
 func PublishList(c *gin.Context) {
-	user_id := c.Query("user_id")
-	parseInt, err := strconv.ParseInt(user_id, 10, 64)
-	if err != nil{
+	userId := c.Query("user_id")
+	parseInt, err := strconv.ParseInt(userId, 10, 64)
+	if err != nil {
 		console.Error(err)
 	}
 	videos, err := FeeSerivce.GetUserAllPublishVideos(parseInt)

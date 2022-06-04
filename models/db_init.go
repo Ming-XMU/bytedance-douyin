@@ -1,9 +1,9 @@
 package models
 
 import (
+	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"log"
 	"time"
 )
 
@@ -23,11 +23,11 @@ func InitDB(con string) {
 		SkipInitializeWithVersion: false, // 根据当前 MySQL 版本自动配置
 	}), &gorm.Config{})
 	if err != nil {
-		log.Fatalln(err)
+		logrus.Fatalln(err)
 	}
 	sqlDB, err := open.DB()
 	if err != nil {
-		log.Fatalln(err)
+		logrus.Fatalln(err)
 	}
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
 	sqlDB.SetMaxIdleConns(10)

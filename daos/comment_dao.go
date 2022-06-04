@@ -2,6 +2,7 @@ package daos
 
 import (
 	"douyin/models"
+	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -15,7 +16,8 @@ type CommentDao interface {
 	InsertComment(comment *models.Comment) error
 	ListCommentById(videoId int) (comments []models.Comment, err error)
 	DeleteComment(commentId int) error
-	GetcCommentIdNext() (num int64, err error)
+	//GetcCommentIdNext() (num int64, err error)
+	GetCommentIdNext() (num int64, err error)
 	GetCommentByCommentId(commentId int) (*models.Comment, error)
 }
 
@@ -68,17 +70,34 @@ func (c CommentDaoImpl) GetcCommentIdNext() (num int64, err error) {
 	}
 	c.db.Debug().Create(comment)
 	num = comment.ID
-	c.DeleteComment(int(num))
+	err = c.DeleteComment(int(num))
+	if err != nil {
+		return 0, err
+	}
 	//select table_name, AUTO_INCREMENT from information_schema.tables where table_name="get_max_id";
 	//num = c.db.Debug().Select("auto_increment", "information_schema.'TABLES'").Where("table_name=?", "Comment")
 	return num + 1, nil
 }
 
+// GetCommentIdNext 获取comment表下一条自增主键
+func (c CommentDaoImpl) GetCommentIdNext() (int64, error) {
+	var res int64
+	table := "information_schema.TABLES"
+	fmt.Println(table)
+	err := c.db.Debug().Table(table).
+		Select("auto_increment").Where("table_name = 'comment'").Take(&res).Error
+	if err != nil {
+		return res, nil
+	}
+	return res, err
+}
+
 func (c *CommentDaoImpl) GetCommentByCommentId(commentId int) (*models.Comment, error) {
 	var comment models.Comment
-	err := c.db.Where("id=?", commentId).Find(&comment)
+	err := c.db.Where("id=?", commentId).Find(&comment).Error
 	if err != nil {
 		//错误处理 TODO
+		return nil, err
 	}
 	return &comment, nil
 }

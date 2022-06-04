@@ -49,7 +49,7 @@ func (u *UserServiceImpl) UserLogin(username string, password string) (*models.U
 	return user, nil
 }
 
-//注册用户
+// UserRegist 注册用户
 //1.先判断表里有没有用户 如果有就提示用户存在
 //2.判断用户名是否违法或者合规（暂未实现）
 //3.注册用户
@@ -76,12 +76,12 @@ func (u *UserServiceImpl) UserRegist(username string, password string, userId in
 	return nil
 }
 
-//返回当前最大的用户ID
+// FindLastUserId 返回当前最大的用户ID
 func (u *UserServiceImpl) FindLastUserId() int64 {
 	return u.userDao.LastId()
 }
 
-//@author cwh
+// UserInfo @author cwh
 //根据id查询对应的对象
 func (u *UserServiceImpl) UserInfo(userId string) (*models.User, error) {
 	id, err := strconv.Atoi(userId)

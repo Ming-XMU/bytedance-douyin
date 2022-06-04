@@ -5,6 +5,7 @@ import (
 	"douyin/controller"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -14,7 +15,10 @@ func main() {
 	TaskStart()
 	r := gin.Default()
 	initRouter(r)
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	err := r.Run()
+	if err != nil {
+		logrus.Fatal(err.Error())
+	} // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
 func TaskStart() {

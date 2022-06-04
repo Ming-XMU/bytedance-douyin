@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/gomodule/redigo/redis"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -9,7 +10,10 @@ var pool *redis.Pool
 
 func GetRec() redis.Conn {
 	conn := pool.Get()
-	conn.Do("AUTH", "douyin/123456")
+	_, err := conn.Do("AUTH", "douyin/123456")
+	if err != nil {
+		logrus.Errorln(err)
+	}
 	return conn
 }
 

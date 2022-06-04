@@ -8,8 +8,13 @@ import (
 	"douyin/tools"
 	"fmt"
 	"github.com/anqiansong/ketty/console"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
+	"io"
 	"log"
+	"os"
+	"path"
+	"runtime"
 	"strings"
 )
 
@@ -26,10 +31,10 @@ var (
 // Init
 //初始化各个组件
 func Init() {
+	initLogRus()
 	file, err := ini.Load("config/config.ini")
 	if err != nil {
-		log.Fatal(err)
-		return
+		logrus.Fatalln(err)
 	}
 	LoadMysql(file)
 	LoadRedis(file)
@@ -37,7 +42,7 @@ func Init() {
 	LoadMinIO(file)
 	//开启mq监听
 	mq.InitMQ(MQUrl)
-	FollowQueueListen()
+	followQueueListen()
 	models.InitDB(MysqlPath)
 	models.InitRedis(RedisUrl, RedisPass)
 	models.InitMinio(Endpoint, AccessKeyID, SecretAccessKey)
@@ -47,7 +52,7 @@ func Init() {
 	err = tools.Init("config/sensitive_words.txt")
 	if err != nil {
 		console.Error(err)
-		panic(err.Error())
+		logrus.Panicln(err.Error())
 	}
 }
 
@@ -101,7 +106,7 @@ func initService() {
 	controller.FavouriteService = services.GetFavoriteService()
 }
 
-func FollowQueueListen() {
+func followQueueListen() {
 	rabbitmq := mq.GetFollowMQ()
 	rabbitmq.ConsumeSimple(func(msg string) error {
 		//按字符_分割参数
@@ -112,4 +117,24 @@ func FollowQueueListen() {
 		}
 		return nil
 	})
+}
+
+//日志logrus
+func initLogRus() {
+	logrus.SetReportCaller(true)
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: "2006-01-02 15:04:05",
+		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
+			//处理文件名
+			fileName := path.Base(frame.File)
+			return frame.Function, fileName
+		},
+	})
+	std := os.Stdout
+	file, err := os.OpenFile("./log.txt", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0755)
+	if err != nil {
+		log.Fatalf("create file log.txt failed: %v", err)
+	}
+	logrus.SetOutput(io.MultiWriter(std, file))
+	logrus.Infoln("application is run")
 }

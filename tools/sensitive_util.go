@@ -34,7 +34,7 @@ func NewTrie() *Trie {
 	}
 }
 
-//假如我要把 敏感词： “我操”
+// Add 假如我要把 敏感词： “我操”
 // Add("我操", nil)
 // Add("色情片", nil)
 func (p *Trie) Add(key string, data interface{}) (err error) {
@@ -116,7 +116,7 @@ func (p *Trie) PrefixSearch(key string) (result []*Node) {
 	return
 }
 
-// replace = "*"
+// Check replace = "*"
 func (p *Trie) Check(text, replace string) (result string, hit bool) {
 
 	chars := []rune(text)
@@ -140,7 +140,7 @@ func (p *Trie) Check(text, replace string) (result string, hit bool) {
 		if ret.term {
 			hit = true
 			node = p.root
-			left = append(left, ([]rune(replace))...)
+			left = append(left, []rune(replace)...)
 			start = index + 1
 			continue
 		}
