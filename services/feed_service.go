@@ -35,7 +35,6 @@ const (
 
 	MaxTitleLength = 100
 	MinTitleLength = 10
-
 )
 
 type FeedService interface {
@@ -43,7 +42,7 @@ type FeedService interface {
 	PublishAction(c *gin.Context) error
 	CreatVideoList(user int, latestTime int64) ([]models.VOVideo, int64)
 	GetAuthor(user, id int) (Author models.VOUser)
-	GetUserAllPublishVideos(userId int64)(videoList []models.VideoVo,err error)
+	GetUserAllPublishVideos(userId int64) (videoList []models.VideoVo, err error)
 	//flush redis favourite
 	FlushRedisFavouriteActionCache(videoId int64, count int) error
 	FlushRedisFavouriteCount()
@@ -52,12 +51,12 @@ type FeedServiceImpl struct {
 	feedDao daos.FeedDao
 }
 
-func(f *FeedServiceImpl) verifyTitle(title string) error{
+func (f *FeedServiceImpl) verifyTitle(title string) error {
 	if tools.VerifyParamsEmpty(title) {
 		return errors.New("title is empty..")
 	}
 	//check title length
-	if len(title) > MaxTitleLength || len(title) < MinTitleLength{
+	if len(title) > MaxTitleLength || len(title) < MinTitleLength {
 		return errors.New("title length is limit 10 ~ 100")
 	}
 	//check invalid input
@@ -72,7 +71,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//verify title
 	title := c.PostForm("title")
 	err = f.verifyTitle(title)
-	if err != nil{
+	if err != nil {
 		return
 	}
 	//get user id from token
@@ -81,7 +80,7 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	user, err := tools.RedisTokenKeyValue(tokenKey)
 	userId := user.UserId
 	file, err := c.FormFile("data")
-	if err != nil{
+	if err != nil {
 		console.Error(err)
 		return errors.New("get video data failed...")
 	}
@@ -97,9 +96,9 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//check multiply
 	savePlayUrl := Show_Play_Url_Prefix + finalName
 	rowsAffected, err := f.feedDao.FindVideoByPlayUrl(savePlayUrl)
-	if rowsAffected > 0{
+	if rowsAffected > 0 {
 		err = errors.New("video is existed...")
-		console.Warn("videoName:%s is existed",savePlayUrl)
+		console.Warn("videoName:%s is existed", savePlayUrl)
 		return
 	}
 	//create video
@@ -149,33 +148,33 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	return
 }
 
-func(f *FeedServiceImpl)GetUserAllPublishVideos(userId int64)(videoList []models.VideoVo,err error){
+func (f *FeedServiceImpl) GetUserAllPublishVideos(userId int64) (videoList []models.VideoVo, err error) {
 
 	videos, err := f.feedDao.GetUserVideos(userId)
-	if err != nil{
+	if err != nil {
 		console.Error(err)
 		return
 	}
-	videoList = make([]models.VideoVo,0)
+	videoList = make([]models.VideoVo, 0)
 	info, err := GetUserService().UserInfo(fmt.Sprint(userId))
-	for _,v := range(videos){
-		videoList = append(videoList,models.VideoVo{
+	for _, v := range videos {
+		videoList = append(videoList, models.VideoVo{
 			Id: v.ID,
 			Author: models.UserMessage{
-				Id: info.Id,
-				Name: info.Name,
-				FollowCount: info.FollowCount,
+				Id:            info.Id,
+				Name:          info.Name,
+				FollowCount:   info.FollowCount,
 				FollowerCount: info.FollowerCount,
-				IsFollow: false,
+				IsFollow:      false,
 			},
-			PlayUrl: v.PlayUrl,
-			CoverUrl: v.CoverUrl,
+			PlayUrl:       v.PlayUrl,
+			CoverUrl:      v.CoverUrl,
 			FavoriteCount: v.FavoriteCount,
-			CommentCount: v.CommentCount,
-			Title: v.Title,
+			CommentCount:  v.CommentCount,
+			Title:         v.Title,
 		})
 	}
-	return videoList,nil
+	return videoList, nil
 }
 
 func (f *FeedServiceImpl) FlushRedisFavouriteActionCache(videoId int64, count int) error {
