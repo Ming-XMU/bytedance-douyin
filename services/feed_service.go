@@ -25,8 +25,9 @@ import "douyin/daos"
  * @Description: TODO
  **/
 const (
-	Play_Url_Path         = "/go/src/simple-demo/public/video/"
-	Cover_Url_Path        = "/go/src/simple-demo/public/img/"
+	Play_Url_Path  = "/go/src/simple-demo/public/video/"
+	Cover_Url_Path = "/go/src/simple-demo/public/img/"
+
 	Show_Play_Url_Prefix  = "https://static-1304359512.cos.ap-guangzhou.myqcloud.com/video/"
 	Show_Cover_Url_Prefix = "https://static-1304359512.cos.ap-guangzhou.myqcloud.com/img/"
 
