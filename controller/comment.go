@@ -20,21 +20,21 @@ func CommentAction(c *gin.Context) {
 	token := c.Query("token")
 
 	// 身份认证
-	if _, err := tools.VeifyToken(token); err != nil {
+	user, err := tools.VeifyToken(token)
+	if err != nil {
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "请先登录！"},
 		})
 		return
 	}
 	// 获取请求参数
-	userId, e1 := strconv.Atoi(c.Query("user_id"))
-	videoId, e2 := strconv.Atoi(c.Query("video_id"))
-	actionType, e3 := strconv.Atoi(c.Query("action_type"))
+	videoId, e1 := strconv.Atoi(c.Query("video_id"))
+	actionType, e2 := strconv.Atoi(c.Query("action_type"))
 
 	exist := services.GetVideoService().VideoExist(int64(videoId))
 
 	// 异常处理
-	if e1 != nil || e2 != nil || e3 != nil || (actionType != 1 && actionType != 2) || !exist {
+	if e1 != nil || e2 != nil || (actionType != 1 && actionType != 2) || !exist {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "参数错误！"})
 		return
 	}
@@ -53,7 +53,7 @@ func CommentAction(c *gin.Context) {
 	}
 
 	// Service调用
-	err := services.GetCommentService().CommentAction(int64(userId), int64(videoId), int64(commentId), actionType, commentText)
+	err = services.GetCommentService().CommentAction(user.UserId, int64(videoId), int64(commentId), actionType, commentText)
 
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
@@ -73,23 +73,23 @@ func CommentList(c *gin.Context) {
 	// 这里请求也携带Token，暂时按照需要认证做
 	token := c.Query("token")
 	// 身份认证
-	if _, err := tools.VeifyToken(token); err != nil {
+	loginUser, err := tools.VeifyToken(token)
+	if err != nil {
 		c.JSON(http.StatusOK, UserResponse{
 			Response: Response{StatusCode: 0, StatusMsg: "请先登录！"},
 		})
 		return
 	}
 	// 获取请求参数
-	userId, e1 := strconv.Atoi(c.Query("user_id"))
-	videoId, e2 := strconv.Atoi(c.Query("video_id"))
+	videoId, e1 := strconv.Atoi(c.Query("video_id"))
 
 	exist := services.GetVideoService().VideoExist(int64(videoId))
 	// 异常处理
-	if e1 != nil || e2 != nil || !exist {
+	if e1 != nil || !exist {
 		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "参数错误！"})
 		return
 	}
-	comments, err := services.GetCommentService().CommentList(userId, videoId)
+	comments, err := services.GetCommentService().CommentList(int(loginUser.UserId), videoId)
 	if err != nil {
 		c.JSON(http.StatusOK, Response{
 			StatusCode: 1,
@@ -117,7 +117,8 @@ func CommentList(c *gin.Context) {
 					user.Name = usr.Name
 					user.FollowCount = usr.FollowCount
 					user.FollowerCount = usr.FollowerCount
-					// TODO 当前用户是否关注此用户
+					info := services.GetFollowService().UserFollowInfo(&models.User{Id: loginUser.UserId}, strconv.FormatInt(usr.Id, 10))
+					user.IsFollow = info.IsFollow
 					userMap[uId] = user
 				}
 			}
