@@ -4,6 +4,7 @@ import (
 	"douyin/models"
 	"gorm.io/gorm"
 	"sync"
+	"time"
 )
 
 /**
@@ -22,7 +23,7 @@ type FeedDao interface {
 	// GetUserVideos get videos by userid
 	GetUserVideos(userId int64) (list []*models.Video, err error)
 	// GetVideosByCreateAt get videos by create_at
-	GetVideosByCreateAt(time int64) (LastVideo []models.Video, err error)
+	GetVideosByCreateAt(timestamp int64) (LastVideo []models.Video, err error)
 }
 type FeedDaoImpl struct {
 	db *gorm.DB
@@ -48,8 +49,13 @@ func (f *FeedDaoImpl) GetUserVideos(userId int64) (list []*models.Video, err err
 	list = userVideos
 	return
 }
-func (f *FeedDaoImpl) GetVideosByCreateAt(time int64) (LastVideo []models.Video, err error) {
-	err = f.db.Debug().Limit(30).Where("create_at<=？", time).Find(&LastVideo).Error
+func (f *FeedDaoImpl) GetVideosByCreateAt(timestamp int64) (LastVideo []models.Video, err error) {
+	// go语言固定日期模版
+	timeLayout := "2006-01-02 15:04:05"
+	// 格式化时间
+	// 测试发现接口传过来的时间戳是毫秒
+	cur := time.UnixMilli(timestamp).Format(timeLayout)
+	err = f.db.Debug().Limit(30).Where("create_at<=?", cur).Find(&LastVideo).Error
 	return LastVideo, err
 }
 

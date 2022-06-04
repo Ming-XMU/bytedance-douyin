@@ -180,7 +180,7 @@ func GetFavoriteCount(VideoId int64) int64 {
 	//get cache name
 	cacheName := DefaultVideoFavoriteCaches[key]
 	ret, err := conn.Do("HGET", cacheName, VideoId)
-	if err != nil { //获取点赞量失败
+	if ret == nil || err != nil { //获取点赞量失败
 		log.Println("HGET favoriteCount failed,error:", err.Error())
 		//从数据库中获取
 		var video *models.Video

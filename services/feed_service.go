@@ -139,28 +139,33 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 	//	return
 	//}
 	//上传视频和封面到cos存储桶
-	err = tools.UploadFileToCos(playLocalUrl, finalName, "video")
-	if err != nil {
-		err = errors.New("upload video to cos failed")
-		return err
-	}
-	err = tools.UploadFileToCos(coverLocalUrl, coverFile, "img")
-	if err != nil {
-		err = errors.New("upload img to cos failed")
-		return err
-	}
-	//如果视频封面成功上传到minio，移除本地视频和封面
-	err = os.Remove(coverLocalUrl)
-	if err != nil {
-		//删除失败
-		return
-	}
-	err = os.Remove(playLocalUrl)
-	if err != nil {
-		//删除失败
-		return
-	}
-
+	go func() {
+		err = tools.UploadFileToCos(playLocalUrl, finalName, "video")
+		if err != nil {
+			err = errors.New("upload video to cos failed")
+			logrus.Println(err)
+			return
+		}
+		err = tools.UploadFileToCos(coverLocalUrl, coverFile, "img")
+		if err != nil {
+			err = errors.New("upload img to cos failed")
+			logrus.Println(err)
+			return
+		}
+		//如果视频封面成功上传到minio，移除本地视频和封面
+		err = os.Remove(coverLocalUrl)
+		if err != nil {
+			//删除失败
+			logrus.Errorln(err)
+			return
+		}
+		err = os.Remove(playLocalUrl)
+		if err != nil {
+			//删除失败
+			logrus.Println(err)
+			return
+		}
+	}()
 	saveCoverUrl := Show_Cover_Url_Prefix + coverFile
 	//Save Db
 	video := &models.Video{

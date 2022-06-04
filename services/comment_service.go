@@ -222,7 +222,7 @@ func removeRedisCommentCountKey(videoId int64) error {
 func getRedisCommentCountKey(videoId int64) (int64, error) {
 	commentKey := getCommentKey(videoId)
 	commentNum, err := tools.RedisDo("GET", commentKey)
-	if err != nil {
+	if commentNum == nil || err != nil {
 		return 0, err
 	}
 	return commentNum.(int64), nil
