@@ -25,13 +25,10 @@ import "douyin/daos"
  * @Description: TODO
  **/
 const (
-	//TODO 绝对路径待修改
-	//producing: /root/douyin/video/  /root/douyin/img
-	Play_Url_Path  = "D:/goProject/src/simple-demo/public/video/"
-	Cover_Url_Path = "D:/goProject/src/simple-demo/public/img/"
-	//TODO 上线修改为服务器的IP地址和端口
-	Show_Play_Url_Prefix  = "http://192.168.3.9:8080/static/video/"
-	Show_Cover_Url_Prefix = "http://192.168.3.9:8080/static/img/"
+	Play_Url_Path         = "/go/src/simple-demo/public/video/"
+	Cover_Url_Path        = "/go/src/simple-demo/public/img/"
+	Show_Play_Url_Prefix  = "http://124.71.45.168:9000/video/"
+	Show_Cover_Url_Prefix = "http://124.71.45.168:9000/img/"
 
 	MaxTitleLength = 100
 	MinTitleLength = 10
@@ -46,6 +43,8 @@ type FeedService interface {
 	//flush redis favourite
 	FlushRedisFavouriteActionCache(videoId int64, count int) error
 	FlushRedisFavouriteCount()
+
+	VideoCacheCdRedis(time int64) error
 }
 type FeedServiceImpl struct {
 	feedDao daos.FeedDao
@@ -107,6 +106,13 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		err = errors.New("create video failed...")
 		return
 	}
+	//create Minio Video
+	err = tools.UploadFileObjectToMinio("video", finalName, file, "video/mp4")
+	if err != nil {
+		console.Error(err)
+		err = errors.New("upload video to minio failed")
+		return
+	}
 	//Create CoverUrl
 	//cmd format :ffmpeg -i  1_mmexport1652668404330.mp4 -ss 00:00:00 -frames:v 1 out.jpg
 	coverFile := finalName + ".jpg"
@@ -124,6 +130,25 @@ func (f *FeedServiceImpl) PublishAction(c *gin.Context) (err error) {
 		err = errors.New("create cover failed..")
 		return
 	}
+	//上传封面到minio
+	err = tools.UploadFileToMinio("img", coverFile, coverLocalUrl, "image/jpeg")
+	if err != nil {
+		console.Error(err)
+		err = errors.New("cover upload to minio failed")
+		return
+	}
+	//如果视频封面成功上传到minio，移除本地视频和封面
+	err = os.Remove(coverLocalUrl)
+	if err != nil {
+		//删除失败
+		return
+	}
+	err = os.Remove(playLocalUrl)
+	if err != nil {
+		//删除失败
+		return
+	}
+
 	saveCoverUrl := Show_Cover_Url_Prefix + coverFile
 	//Save Db
 	video := &models.Video{
@@ -196,6 +221,27 @@ func GetFeedService() FeedService {
 	return feedService
 }
 
+func (f *FeedServiceImpl) VideoCacheCdRedis(time int64) error {
+	if tools.RedisKeyExists("video_cache_set") {
+		return tools.RedisKeyFlush("video_cache_set")
+	}
+	videolist, err := f.feedDao.GetVideosByCreateAt(time)
+	if err != nil {
+		log.Println("get videos by creatAt failed", err.Error())
+		return err
+	}
+	for _, video := range videolist {
+		err = tools.RedisCacheFeed(&video)
+		if err != nil {
+			console.Error(err)
+			return err
+		}
+	}
+	_ = tools.RedisDoKV("EXPIRE", "video_cache_set", 1800)
+	//	return nil
+	return err
+}
+
 //GetJsonFeeCache 获取redis中缓存的视频数据
 //author: wechan
 func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.Video, err error) {
@@ -203,16 +249,29 @@ func (f *FeedServiceImpl) GetJsonFeeCache(latestTime int64) (VideoList []models.
 	//连接redis
 	rec := models.GetRec()
 	//从redis获取数据
-	//unix := time.Now().Unix()
+	err = f.VideoCacheCdRedis(latestTime) //如果redis中没有数据，就从数据库重新加载redis缓存
+	if err != nil {
+		log.Println("VideoCacheCdRedis failed,err", err.Error())
+	}
 	videoCache, err := redis.Values(rec.Do("ZRevRangeByScore", "video_cache_set", latestTime, 0, "limit", 0, 29))
 	if err != nil {
+		//redis读取出错，从数据库读取
 		log.Println("get redis video_cache failed,err:", err.Error())
-		return nil, err
+		VideoList, err = f.feedDao.GetVideosByCreateAt(latestTime)
+		if err != nil || len(VideoList) < 1 {
+			return nil, err
+		}
+		return VideoList, err
 	}
-	if videoCache == nil || len(videoCache) < 1 { //读不到redis数据
+	if videoCache == nil || len(videoCache) < 1 {
+		//读不到redis数据，从数据库读取
 		log.Println("video cache:", videoCache)
 		log.Println("redis no data")
-		return nil, err
+		VideoList, err = f.feedDao.GetVideosByCreateAt(latestTime)
+		if err != nil || len(VideoList) < 1 {
+			return nil, err
+		}
+		return VideoList, err
 	}
 	//遍历数据反序列化
 	for _, val := range videoCache {
@@ -232,15 +291,14 @@ func (f *FeedServiceImpl) CreatVideoList(user int, latestTime int64) (videolist 
 	if err != nil || videos == nil {
 		//fmt.Println("create video list get redis cache failed,err:", err.Error())
 		//fmt.Println("len of video cache: ", len(videos))
-
-		return models.VODemoVideos, time.Now().Unix() //获取不到redis缓存数据，直接返回demovideos
+		return models.VODemoVideos, time.Now().Unix() //从redis和mysql都获取不到数据，直接返回demovideos
 	}
 	for _, singlevideo := range videos {
 		videoret.Id = singlevideo.ID
 		videoret.CoverUrl = singlevideo.CoverUrl
 		videoret.PlayUrl = singlevideo.PlayUrl
-		videoret.CommentCount = singlevideo.CommentCount
-		videoret.FavoriteCount = singlevideo.FavoriteCount
+		videoret.CommentCount = GetCommentService().GetCommentCount(singlevideo.ID)
+		videoret.FavoriteCount = tools.GetFavoriteCount(singlevideo.ID)
 		//getuser, err := GetUserService().UserInfo(string(singlevideo.UserId))
 		//if err != nil {
 		//	fmt.Println("get authors failed,err: ", err.Error())
@@ -292,6 +350,12 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 			Author.IsFollow = false //数据库读取follow出错时，使用默认值false
 		} else {
 			Author.IsFollow, _ = redis.Bool(getIsFollow, err)
+		}
+		//如果视频作者为自己，默认设置为已关注状态
+		str := strconv.FormatInt(getuser.Id, 10)
+		toId, _ := strconv.Atoi(str)
+		if user == toId {
+			Author.IsFollow = true
 		}
 	}
 	return Author

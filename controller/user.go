@@ -76,9 +76,9 @@ func Register(c *gin.Context) {
 	//	return
 	//}
 	_, isReplaced := tools.Replace(username, "*")
-	if isReplaced == false {
+	if isReplaced == true {
 		c.JSON(http.StatusOK, UserLoginResponse{
-			Response: Response{StatusCode: 1, StatusMsg: "用户名存在违规字符"},
+			Response: Response{StatusCode: 1, StatusMsg: "用户名存在违规字符!"},
 		})
 		return
 	}

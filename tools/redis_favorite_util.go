@@ -1,9 +1,11 @@
 package tools
 
 import (
+	"douyin/daos"
 	"douyin/models"
 	"errors"
 	"github.com/gomodule/redigo/redis"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -62,17 +64,17 @@ func RedisCacheFavorite(favorite *models.Favorite) (interface{}, error) {
 }
 
 //get user favourite cache
-func RedisGetUserFavouriteCache(userId int64)(favouriteList []int64, err error){
+func RedisGetUserFavouriteCache(userId int64) (favouriteList []int64, err error) {
 	rec := models.GetRec()
 	defer rec.Close()
 	cacheName := PackageUserFavoriteCacheName(userId)
 	values, err := redis.Values(rec.Do("smembers", cacheName))
-	if err != nil{
+	if err != nil {
 		return
 	}
 	list := make([]int64, len(values))
 	for _, v := range values {
-		list = append(list,v.(int64))
+		list = append(list, v.(int64))
 	}
 	return list, nil
 }
@@ -155,13 +157,38 @@ func FavouriteRateLimitDel() error {
 	return err
 }
 
+// JudgeisFavoriteByredis 判断是否点赞
+// Author: wechan
 func JudgeisFavoriteByredis(VideoId, UserId int64) int64 {
 	conn := models.GetRec()
 	defer conn.Close()
 	favoriteVideoName := PackageUserFavoriteCacheName(UserId)
 	ret, err := conn.Do("sismember", favoriteVideoName, VideoId)
-	if err != nil { //读取缓存出错，默认为未点赞，后面再看怎么改合适 TODO
+	if err != nil { //读取缓存出错，默认为未点赞
 		return 0
+	}
+	return ret.(int64)
+}
+
+// GetFavoriteCount 获取当前视频的点赞量
+// Author: wechan
+func GetFavoriteCount(VideoId int64) int64 {
+	conn := models.GetRec()
+	defer conn.Close()
+	//calculate hash
+	key := hashKey(VideoId)
+	//get cache name
+	cacheName := DefaultVideoFavoriteCaches[key]
+	ret, err := conn.Do("HGET", cacheName, VideoId)
+	if err != nil { //获取点赞量失败
+		log.Println("HGET favoriteCount failed,error:", err.Error())
+		//从数据库中获取
+		var video *models.Video
+		video, err = daos.GetVideoDao().FindById(VideoId)
+		if err != nil {
+			return 0
+		}
+		return video.FavoriteCount
 	}
 	return ret.(int64)
 }

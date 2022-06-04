@@ -31,12 +31,14 @@ func RelationAction(c *gin.Context) {
 		return
 	}
 
-	//参数userId跟token一致
-	userId := c.Query("user_id")
-	if strconv.FormatInt(user.UserId, 10) != userId {
-		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户检验错误！"})
-		return
-	}
+	////参数userId跟token一致
+	//userId := c.Query("user_id")
+	//if strconv.FormatInt(user.UserId, 10) != userId {
+	//	c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: "用户检验错误！"})
+	//	return
+	//}
+	//请求没有携带userid参数，改为从token获取
+	userId := strconv.FormatInt(user.UserId, 10)
 
 	//用户存在验证
 	toUserId := c.Query("to_user_id")
