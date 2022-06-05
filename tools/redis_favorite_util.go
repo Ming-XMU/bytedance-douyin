@@ -189,5 +189,9 @@ func GetFavoriteCount(VideoId int64) int64 {
 		}
 		return video.FavoriteCount
 	}
-	return ret.(int64)
+	res, err := redis.Int64(ret, nil)
+	if err != nil {
+		return 0
+	}
+	return res
 }
