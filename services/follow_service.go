@@ -178,8 +178,11 @@ func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) *mo
 	_ = f.followListCdRedis(userId)
 	//构建返回
 	res := models.UserMessage{
-		Id:   find.Id,
-		Name: find.Name,
+		Id:         find.Id,
+		Name:       find.Name,
+		Avatar:     find.Avatar,
+		Signature:  find.Signature,
+		BackGround: find.BackGround,
 	}
 	//查询是否关注
 	do, _ := tools.RedisDo("sismember", getFollowKey(userId), find.Id)

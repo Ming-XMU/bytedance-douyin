@@ -71,7 +71,8 @@ func (u *UserDaoImpl) LastId() int64 {
 //根据id查询对应的user
 func (u *UserDaoImpl) FindById(id int) (*models.User, error) {
 	var user models.User
-	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count").Where("id = ?", id).Take(&user).Error
+	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count", "avatar", "signature", "background_image").
+		Where("id = ?", id).Take(&user).Error
 	fmt.Println(user)
 	if err != nil {
 		return nil, err
@@ -81,6 +82,9 @@ func (u *UserDaoImpl) FindById(id int) (*models.User, error) {
 
 func (u *UserDaoImpl) FindListByIds(ids []int) ([]models.User, error) {
 	var res []models.User
+	if len(ids) == 0 {
+		return res, nil
+	}
 	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count").
 		Where("id IN ?", ids).Find(&res).Error
 	if err != nil {
