@@ -20,6 +20,7 @@ type UserDao interface {
 	LastId() int64
 	FindById(id int) (*models.User, error)
 	FindListByIds(ids []int) ([]models.User, error)
+	UpdateUser(user *models.User) error
 }
 type UserDaoImpl struct {
 	db  *gorm.DB
@@ -40,6 +41,15 @@ func GetUserDao() UserDao {
 // 参数 user User结构体指针
 func (u *UserDaoImpl) AddUser(user *models.User) error {
 	if err := u.db.Create(user).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateUser 更新用户
+// 参数 user User结构体指针
+func (u *UserDaoImpl) UpdateUser(user *models.User) error {
+	if err := u.db.Debug().Updates(user).Error; err != nil {
 		return err
 	}
 	return nil
