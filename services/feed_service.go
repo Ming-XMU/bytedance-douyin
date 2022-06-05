@@ -379,11 +379,7 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 
 // FlushRedisFavouriteCount flush redis favourite cache
 func (f *FeedServiceImpl) FlushRedisFavouriteCount() {
-	//清空删除缓存
-	err := tools.FavouriteRateLimitDel()
-	if err != nil {
-		logrus.Errorln("favouriteRateLimitDel is false")
-	}
+	console.Info("==========flush redis favourite count cache==========")
 	for _, cacheName := range tools.DefaultVideoCacheList {
 		kv, err := tools.GetAllKV(cacheName)
 		if err != nil {
@@ -394,16 +390,19 @@ func (f *FeedServiceImpl) FlushRedisFavouriteCount() {
 			videoId, err := strconv.ParseInt(k, 10, 64)
 			if err != nil {
 				//TODO 出现局部出错
+				console.Error(err)
 				continue
 			}
 			count, err := strconv.Atoi(v)
 			if err != nil {
 				//TODO 出现局部出错
+				console.Error(err)
 				continue
 			}
 			err = f.FlushRedisFavouriteActionCache(videoId, count)
 			if err != nil {
 				//TODO 出现局部出错
+				console.Error(err)
 				continue
 			}
 		}
