@@ -3,7 +3,7 @@ package services
 import (
 	"douyin/daos"
 	"douyin/models"
-	mq "douyin/mq"
+	"douyin/mq"
 	"douyin/tools"
 	"encoding/json"
 	"errors"
@@ -60,22 +60,34 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 	if action == 1 {
 		result, err := tools.RedisCacheFavorite(favorite)
 		if err != nil {
+			console.Error(err)
 			return err
 		}
-		if result == 2 {
+		resultToInt := result.(int64)
+		if resultToInt == 2 {
 			return errors.New("已经点赞过了")
 		}
+		//err = f.favoriteDao.InsertFavorite(favorite)
+		//if err != nil{
+		//	console.Error(err)
+		//	return errors.New("点赞失败")
+		//}
 	} else if action == 2 {
 		result, err := tools.RedisCacheCancelFavorite(favorite)
 		if err != nil {
 			console.Error(err)
 			return err
 		}
-		if result == 2 {
+		resultToInt := result.(int64)
+		if resultToInt == 2 {
 			return errors.New("还没有进行点赞")
 		}
+		//err = f.favoriteDao.DeleteFavorite(favorite.UserId, favorite.VideoId)
+		//if err != nil{
+		//	console.Error(err)
+		//	return errors.New("取消点赞失败")
+		//}
 	}
-
 	rabbitMQSimple := mq.NewRabbitMQSimple("favoriteActionQueue", "amqp://admin:123456@120.78.238.68:5672/default_host")
 	err = rabbitMQSimple.PublishSimple(string(jsonMsg))
 	if err != nil {
