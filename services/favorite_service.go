@@ -88,7 +88,7 @@ func (f *FavoriteServiceImpl) FavoriteAction(userId int64, videoId int64, action
 		//	return errors.New("取消点赞失败")
 		//}
 	}
-	rabbitMQSimple := mq.NewRabbitMQSimple("favoriteActionQueue", "amqp://admin:123456@120.78.238.68:5672/default_host")
+	rabbitMQSimple := mq.GetFavoriteMQ()
 	err = rabbitMQSimple.PublishSimple(string(jsonMsg))
 	if err != nil {
 		//Roll Back

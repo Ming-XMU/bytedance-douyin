@@ -8,15 +8,20 @@ import (
 )
 
 const (
-	FollowQueueName = "follow"
+	FollowQueueName   = "follow"
+	FavoriteQueueName = "favoriteActionQueue"
 )
 
 var (
-	followMQ *RabbitMQ
+	followMQ   *RabbitMQ
+	favoriteMQ *RabbitMQ
 )
 
 func GetFollowMQ() *RabbitMQ {
 	return followMQ
+}
+func GetFavoriteMQ() *RabbitMQ {
+	return favoriteMQ
 }
 
 //RabbitMQ 结构体
@@ -35,6 +40,7 @@ type RabbitMQ struct {
 
 func InitMQ(mqUrl string) {
 	followMQ = NewRabbitMQSimple(FollowQueueName, mqUrl)
+	favoriteMQ = NewRabbitMQSimple(FavoriteQueueName, mqUrl)
 }
 
 // NewRabbitMQSimple 创建简单模式下RabbitMQ实例
