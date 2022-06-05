@@ -16,8 +16,7 @@ var (
 	followService     FollowService
 	followServiceOnce sync.Once
 	//管理redis中关注数的hash名
-	followRead  = "follow_hash_one" //读出使用的变量
-	followWrite = "follow_hash_two" //写入使用的变量
+	followHash = "follow_hash"
 	//管理redis中粉丝数的hash名
 	followerRead  = "follower_hash_one" //读出使用的变量
 	followerWrite = "follower_hash_two" //写入使用的变量
@@ -121,7 +120,7 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 	_ = tools.RedisDoKV(action, followerKey, userId)
 	//关注者关注数+1，被关注者粉丝数+1
 	fmt.Printf("userId = %s, add = %d", userId, add)
-	_ = tools.RedisDoHash("HINCRBY", followWrite, userId, add)
+	_ = tools.RedisDoHash("HINCRBY", followHash, userId, add)
 	_ = tools.RedisDoHash("HINCRBY", followerWrite, toUserId, add)
 	return nil
 }
@@ -138,7 +137,8 @@ func (f *FollowServiceImpl) followListCdRedis(userId string) error {
 	if err != nil {
 		return err
 	}
-	_ = tools.RedisDoHash("HSET", followWrite, userId, len(follows))
+	_ = tools.RedisDoHash("HSET", followHash, userId, len(follows))
+	fmt.Println("hset", userId, len(follows))
 	for _, value := range follows {
 		//sadd userId followId
 		_ = tools.RedisDoKV("SADD", followKey, value)
@@ -161,6 +161,7 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 		return err
 	}
 	_ = tools.RedisDoHash("HSET", followerWrite, userId, len(follower))
+	fmt.Println("hset", userId, len(follower))
 	for _, value := range follower {
 		//sadd userId followId
 		_ = tools.RedisDoKV("SADD", followerKey, value)
@@ -193,7 +194,7 @@ func (f *FollowServiceImpl) UserFollowInfo(find *models.User, userId string) *mo
 //用户信息关注数和粉丝数的查询
 func (f *FollowServiceImpl) setMessageCount(userId int64, message *models.UserMessage) {
 	//查询对方的关注数
-	do, err := tools.RedisDo("hget", followWrite, userId)
+	do, err := tools.RedisDo("hget", followHash, userId)
 	if do != nil {
 		//有缓存时更新，当0是真实值，更不更新一样
 		message.FollowCount, _ = redis.Int64(do, err)
@@ -260,7 +261,6 @@ func (f *FollowServiceImpl) UserFollowerList(userId string) ([]models.UserMessag
 }
 
 func ReHashKey() {
-	followWrite, followRead = followRead, followWrite
 	followerWrite, followerRead = followerRead, followerWrite
 }
 
@@ -336,5 +336,5 @@ func ParseIdAndCount(k string, v string) (userId int, count int, err error) {
 }
 
 func GetHashRead() (string, string) {
-	return followRead, followerRead
+	return followHash, followerRead
 }
