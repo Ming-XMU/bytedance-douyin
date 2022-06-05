@@ -125,12 +125,14 @@ func FavouriteRateLimit(userId int64) (result interface{}, err error) {
 	rec := models.GetRec()
 	defer CloseConn(rec)
 	luaScript := "if redis.call(\"EXISTS\",KEYS[1]) ~= 0 and " +
-		"tonumber(redis.call(\"HGET\",KEYS[1],KEYS[2])) > 100 " +
-		"then\n    return 0\nend\nredis.call(\"HINCRBY\",KEYS[1],KEYS[2],1)\n" +
+		"redis.call(\"HEXISTS\",KEYS[1],KEYS[2]) ~= 0 and " +
+		"tonumber(redis.call(\"HGET\",KEYS[1],KEYS[2])) > 100 then\n    " +
+		"return 0\nend\nredis.call(\"HINCRBY\",KEYS[1],KEYS[2],1)\n" +
 		"if redis.call(\"LLEN\",KEYS[3]) < 10 then\n    " +
 		"redis.call(\"LPUSH\",KEYS[3],KEYS[4])\n    " +
-		"return 1\nend\nif tonumber(KEYS[4]) - tonumber(redis.call(\"LINDEX\",KEYS[3],9)) < 300 " +
-		"then\n    return 0\nend\nredis.call(\"RPOP\",KEYS[3])\n" +
+		"return 1\nend\n" +
+		"if tonumber(KEYS[4]) - tonumber(redis.call(\"LINDEX\",KEYS[3],9)) < 300 then" +
+		"\n    return 0\nend\nredis.call(\"RPOP\",KEYS[3])\n" +
 		"redis.call(\"LPUSH\",KEYS[3],KEYS[4])\nredis.call(\"EXPIRE\",KEYS[3],300)\nreturn 1"
 	cacheName := GetFavouriteRateLimitCache(userId)
 	limitListName := PackageFavouriteRateLimitListName(userId)

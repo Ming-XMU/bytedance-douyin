@@ -3,7 +3,7 @@ package interceptor
 import (
 	"douyin/controller"
 	"douyin/tools"
-	"fmt"
+	"github.com/anqiansong/ketty/console"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -32,16 +32,18 @@ func FavouriteRateLimitInterceptor() gin.HandlerFunc {
 				})
 				//stop
 				context.Abort()
+				return
 			}
 			result, err := tools.FavouriteRateLimit(loginInfo.UserId)
 			if err != nil{
-				fmt.Println(err)
+				console.Error(err)
 				context.JSON(http.StatusOK, &controller.Response{
 					StatusCode: -1,
 					StatusMsg:  "occured unknown error",
 				})
 				//stop
 				context.Abort()
+				return
 			}
 			resultToInt := result.(int64)
 			if resultToInt == 0{
@@ -51,6 +53,7 @@ func FavouriteRateLimitInterceptor() gin.HandlerFunc {
 				})
 				//stop
 				context.Abort()
+				return
 			}
 		}
 		context.Next()
