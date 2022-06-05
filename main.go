@@ -24,13 +24,13 @@ func main() {
 func TaskStart() {
 	go func() {
 		c := cron.New()
-		//每天凌晨1点进行刷新
-		err := c.AddFunc("0 1 1 * *  ?", controller.FeeSerivce.FlushRedisFavouriteCount)
+		// 点赞 | 为了方便调试每10秒写回
+		err := c.AddFunc("*/10 * * * * ?", controller.FeeSerivce.FlushRedisFavouriteCount)
 		if err != nil {
 			return
 		}
-		//每隔一个小时update关注数
-		err = c.AddFunc("0 0 */1 * * ?", controller.FollowSerivce.FollowUpdate)
+		// 关注 | 为了方便调试每10秒写回
+		err = c.AddFunc("*/10 * * * * ?", controller.FollowSerivce.FollowUpdate)
 		if err != nil {
 			return
 		}
