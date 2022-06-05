@@ -15,17 +15,18 @@ import (
  **/
 
 //favorite action rate limit
-var(
+var (
 	favouriteActionPath = "/douyin/favorite/action/"
 )
+
 func FavouriteRateLimitInterceptor() gin.HandlerFunc {
 
 	return func(context *gin.Context) {
 		path := context.Request.URL.Path
-		if path == favouriteActionPath{
+		if path == favouriteActionPath {
 			token := context.Query("token")
 			loginInfo, err := tools.VeifyToken(token)
-			if err != nil{
+			if err != nil {
 				context.JSON(http.StatusOK, &controller.Response{
 					StatusCode: -1,
 					StatusMsg:  "token is expire or empty",
@@ -34,7 +35,7 @@ func FavouriteRateLimitInterceptor() gin.HandlerFunc {
 				context.Abort()
 			}
 			result, err := tools.FavouriteRateLimit(loginInfo.UserId)
-			if err != nil{
+			if err != nil {
 				fmt.Println(err)
 				context.JSON(http.StatusOK, &controller.Response{
 					StatusCode: -1,
@@ -44,7 +45,7 @@ func FavouriteRateLimitInterceptor() gin.HandlerFunc {
 				context.Abort()
 			}
 			resultToInt := result.(int64)
-			if resultToInt == 0{
+			if resultToInt == 0 {
 				context.JSON(http.StatusOK, &controller.Response{
 					StatusCode: -1,
 					StatusMsg:  "点赞太频繁了，休息一下",

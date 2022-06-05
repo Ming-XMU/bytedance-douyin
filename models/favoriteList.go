@@ -6,12 +6,13 @@ package models
  * @Description: TODO
  **/
 
-type FavoriteList struct{
+type FavoriteList struct {
 	UserId  int64 `gorm:"column:user_id"`
 	VideoId int64 `gorm:"column:video_id"`
-	Author User `gorm:"foreignKey:UserId"`
-	Video Video `gorm:"foreignKey:VideoId"`
+	Author  User  `gorm:"foreignKey:UserId"`
+	Video   Video `gorm:"foreignKey:VideoId"`
 }
+
 func (f *FavoriteList) TableName() string {
 	return FavoriteTableName
 }
