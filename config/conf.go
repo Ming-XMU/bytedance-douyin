@@ -2,10 +2,13 @@ package config
 
 import (
 	"douyin/controller"
+	"douyin/daos"
 	"douyin/models"
 	"douyin/mq"
 	"douyin/services"
 	"douyin/tools"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/anqiansong/ketty/console"
 	"github.com/sirupsen/logrus"
@@ -43,6 +46,7 @@ func Init() {
 	//开启mq监听
 	mq.InitMQ(MQUrl)
 	followQueueListen()
+	favoriteQueueListen()
 	models.InitDB(MysqlPath)
 	models.InitRedis(RedisUrl, RedisPass)
 	models.InitMinio(Endpoint, AccessKeyID, SecretAccessKey)
@@ -114,6 +118,32 @@ func followQueueListen() {
 		err := controller.FollowSerivce.Action(arr[0], arr[1], arr[2])
 		if err != nil {
 			return err
+		}
+		return nil
+	})
+}
+
+func favoriteQueueListen() {
+	rabbitMQSimple := mq.GetFavoriteMQ()
+	rabbitMQSimple.ConsumeSimple(func(msg string) error {
+		var fMsg *mq.FavoriteActionMsg
+		err := json.Unmarshal([]byte(msg), fMsg)
+		if err != nil {
+			return errors.New("favoriteQueueListen unmarshal failed")
+		}
+		if fMsg.Action == 1 {
+			err = daos.GetFavoriteDao().InsertFavorite(fMsg.Favorite)
+			if err != nil {
+				console.Error(err)
+				return errors.New("点赞失败")
+			}
+		}
+		if fMsg.Action == 2 {
+			err = daos.GetFavoriteDao().DeleteFavorite(fMsg.Favorite.UserId, fMsg.Favorite.VideoId)
+			if err != nil {
+				console.Error(err)
+				return errors.New("取消点赞失败")
+			}
 		}
 		return nil
 	})

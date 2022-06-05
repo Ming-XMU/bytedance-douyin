@@ -13,7 +13,7 @@ var (
 
 type FavoriteDao interface {
 	InsertFavorite(favorite *models.Favorite) error
-	DeleteFavorite(userId, videoId int) error
+	DeleteFavorite(userId, videoId int64) error
 	JudgeIsFavorite(userId, videoId int) (bool, error)
 	UserFavorites(userId int64) (lists []models.FavoriteList, err error)
 }
@@ -42,7 +42,7 @@ func (f *FavoriteDaoImpl) InsertFavorite(favorite *models.Favorite) error {
 	return f.db.Debug().Create(favorite).Error
 }
 
-func (f *FavoriteDaoImpl) DeleteFavorite(userId, videoId int) error {
+func (f *FavoriteDaoImpl) DeleteFavorite(userId, videoId int64) error {
 	return f.db.Debug().Where("user_id = ? && video_id = ?", userId, videoId).Delete(&models.Favorite{}).Error
 }
 

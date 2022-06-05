@@ -34,7 +34,7 @@ func (f *FeedDaoImpl) CreateFeed(video *models.Video) (rowsAffected int64, err e
 	return result.RowsAffected, result.Error
 }
 func (f *FeedDaoImpl) UpdateVideoFavoriteCount(videoId int64, count int) error {
-	return f.db.Model(&models.Video{}).Where("id = ?", videoId).Update("favourite_count", count).Error
+	return f.db.Model(&models.Video{}).Where("id = ?", videoId).Update("favorite_count", count).Error
 }
 
 func (f *FeedDaoImpl) FindVideoByPlayUrl(videoUrl string) (rowsAffected int64, err error) {

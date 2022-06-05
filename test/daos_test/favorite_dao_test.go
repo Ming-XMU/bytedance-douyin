@@ -16,15 +16,16 @@ import (
  * @Description: TODO
  **/
 
-var(
+var (
 	favoriteDao daos.FavoriteDao
 )
-func TestGetUserFavorites(t *testing.T){
+
+func TestGetUserFavorites(t *testing.T) {
 	favorites, err := favoriteDao.UserFavorites(2)
-	if err != nil{
+	if err != nil {
 		t.Errorf(err.Error())
 	}
-	for _,favorite := range(favorites){
+	for _, favorite := range favorites {
 		fmt.Println(favorite)
 	}
 }

@@ -18,8 +18,7 @@ var (
 	//管理redis中关注数的hash名
 	followHash = "follow_hash"
 	//管理redis中粉丝数的hash名
-	followerRead  = "follower_hash_one" //读出使用的变量
-	followerWrite = "follower_hash_two" //写入使用的变量
+	followerHash = "follower_hash"
 )
 
 type FollowService interface {
@@ -121,7 +120,7 @@ func (f *FollowServiceImpl) RedisAction(userId, toUserId, actionType string) err
 	//关注者关注数+1，被关注者粉丝数+1
 	fmt.Printf("userId = %s, add = %d", userId, add)
 	_ = tools.RedisDoHash("HINCRBY", followHash, userId, add)
-	_ = tools.RedisDoHash("HINCRBY", followerWrite, toUserId, add)
+	_ = tools.RedisDoHash("HINCRBY", followerHash, toUserId, add)
 	return nil
 }
 
@@ -160,7 +159,7 @@ func (f *FollowServiceImpl) followerListCdRedis(userId string) error {
 	if err != nil {
 		return err
 	}
-	_ = tools.RedisDoHash("HSET", followerWrite, userId, len(follower))
+	_ = tools.RedisDoHash("HSET", followerHash, userId, len(follower))
 	fmt.Println("hset", userId, len(follower))
 	for _, value := range follower {
 		//sadd userId followId
@@ -203,7 +202,7 @@ func (f *FollowServiceImpl) setMessageCount(userId int64, message *models.UserMe
 		message.FollowCount, _ = redis.Int64(do, err)
 	}
 	//查询对方粉丝数
-	do, _ = tools.RedisDo("hget", followerWrite, userId)
+	do, _ = tools.RedisDo("hget", followerHash, userId)
 	if do != nil {
 		message.FollowerCount, _ = redis.Int64(do, err)
 	}
@@ -263,10 +262,6 @@ func (f *FollowServiceImpl) UserFollowerList(userId string) ([]models.UserMessag
 	return res, nil
 }
 
-func ReHashKey() {
-	followerWrite, followerRead = followerRead, followerWrite
-}
-
 func getFollowKey(userId string) string {
 	return strings.Join([]string{userId, "follow"}, "_")
 }
@@ -280,8 +275,6 @@ func getFollowerKey(userId string) string {
 // @Description: 定时缓存写回mysql
 // @return error
 func (f *FollowServiceImpl) FollowUpdate() {
-	//重置读写hash键
-	ReHashKey()
 	follow, follower := GetHashRead()
 	//获取关注数量所有键值对
 	followMap, err := tools.GetAllKV(follow)
@@ -315,14 +308,15 @@ func (f *FollowServiceImpl) FollowUpdate() {
 			continue
 		}
 	}
-	err = tools.RedisDeleteKey(follow)
-	if err != nil {
-		return
-	}
-	err = tools.RedisDeleteKey(follower)
-	if err != nil {
-		return
-	}
+	//改为写回数据无需删除
+	//err = tools.RedisDeleteKey(follow)
+	//if err != nil {
+	//	return
+	//}
+	//err = tools.RedisDeleteKey(follower)
+	//if err != nil {
+	//	return
+	//}
 	return
 }
 
@@ -339,5 +333,5 @@ func ParseIdAndCount(k string, v string) (userId int, count int, err error) {
 }
 
 func GetHashRead() (string, string) {
-	return followHash, followerRead
+	return followHash, followerHash
 }

@@ -14,11 +14,12 @@ import (
  * @Date: 2022/5/28 16:28
  * @Description: 测试
  **/
-var(
+var (
 	feeService = services.GetFeedService()
 )
-func BenchmarkTestFeed(b *testing.B){
-	for i := 0;i < b.N;i++{
+
+func BenchmarkTestFeed(b *testing.B) {
+	for i := 0; i < b.N; i++ {
 		feeService.CreatVideoList(0)
 	}
 }
@@ -51,6 +52,5 @@ func LoadRedis(file *ini.File) {
 	Port := file.Section("redis").Key("Port").String()
 	RedisPass := file.Section("redis").Key("Pass").String()
 	RedisUrl := strings.Join([]string{"redis://", Host, ":", Port}, "")
-	models.InitRedis(RedisUrl,RedisPass)
+	models.InitRedis(RedisUrl, RedisPass)
 }
-
