@@ -17,6 +17,9 @@ type VOUser struct {
 	FollowCount   int64  `json:"follow_count"`
 	FollowerCount int64  `json:"follower_count"`
 	IsFollow      bool   `json:"is_follow"`
+	Avatar        string `json:"avatar"`
+	Signature     string `json:"signature"`
+	Background    string `json:"back_ground"`
 }
 
 var VODemoVideos = []VOVideo{
