@@ -117,6 +117,9 @@ func CommentList(c *gin.Context) {
 					user.Name = usr.Name
 					user.FollowCount = usr.FollowCount
 					user.FollowerCount = usr.FollowerCount
+					user.Avatar = usr.Avatar
+					user.BackGround = usr.BackGround
+					user.Signature = usr.Signature
 					info := services.GetFollowService().UserFollowInfo(&models.User{Id: loginUser.UserId}, strconv.FormatInt(usr.Id, 10))
 					user.IsFollow = info.IsFollow
 					userMap[uId] = user

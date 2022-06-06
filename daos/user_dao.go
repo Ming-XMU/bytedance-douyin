@@ -85,7 +85,7 @@ func (u *UserDaoImpl) FindListByIds(ids []int) ([]models.User, error) {
 	if len(ids) == 0 {
 		return res, nil
 	}
-	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count").
+	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count", "avatar", "signature", "background_image").
 		Where("id IN ?", ids).Find(&res).Error
 	if err != nil {
 		return nil, err

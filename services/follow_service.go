@@ -228,9 +228,12 @@ func (f *FollowServiceImpl) UserFollowList(userId string) ([]models.UserMessage,
 	res := make([]models.UserMessage, len(finds))
 	for i, find := range finds {
 		message := models.UserMessage{
-			Id:       find.Id,
-			Name:     find.Name,
-			IsFollow: true,
+			Id:         find.Id,
+			Name:       find.Name,
+			IsFollow:   true,
+			Avatar:     find.Avatar,
+			Signature:  find.Signature,
+			BackGround: find.BackGround,
 		}
 		f.setMessageCount(find.Id, &message)
 		res[i] = message

@@ -10,7 +10,7 @@ type User struct {
 	FollowCount   int64  `gorm:"column:follow_count"`
 	FollowerCount int64  `gorm:"column:follower_count"`
 	Avatar        string `gorm:"column:avatar"`
-	Signature     string `gorm:"column:signature "`
+	Signature     string `gorm:"column:signature"`
 	BackGround    string `gorm:"column:background_image"`
 }
 
@@ -24,7 +24,7 @@ type UserMessage struct {
 	FollowCount   int64  `json:"follow_count"`
 	FollowerCount int64  `json:"follower_count"`
 	IsFollow      bool   `json:"is_follow"`
-	Avatar        string `json:"column:avatar"`
-	Signature     string `json:"column:signature "`
-	BackGround    string `json:"column:background_image"`
+	Avatar        string `json:"avatar"`
+	Signature     string `json:"signature"`
+	BackGround    string `json:"background_image"`
 }
