@@ -5,3 +5,4 @@
 {"file":"conf.go","func":"douyin/config.initLogRus","level":"info","msg":"application is run","time":"2022-06-05 11:40:54"}
 {"file":"conf.go","func":"douyin/config.initLogRus","level":"info","msg":"application is run","time":"2022-06-05 12:16:50"}
 {"file":"conf.go","func":"douyin/config.initLogRus","level":"info","msg":"application is run","time":"2022-06-05 18:35:24"}
+{"file":"conf.go","func":"douyin/config.initLogRus","level":"info","msg":"application is run","time":"2022-06-05 21:35:40"}
