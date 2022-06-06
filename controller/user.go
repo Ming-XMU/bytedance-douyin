@@ -154,3 +154,12 @@ func UserInfo(c *gin.Context) {
 		})
 	}
 }
+
+func UpdateUser(c *gin.Context) {
+	err := services.GetUserService().UserUpdate(c)
+	if err != nil {
+		c.JSON(http.StatusOK, Response{StatusCode: 1, StatusMsg: err.Error()})
+	} else {
+		c.JSON(http.StatusOK, Response{StatusCode: 0, StatusMsg: "上传成功"})
+	}
+}

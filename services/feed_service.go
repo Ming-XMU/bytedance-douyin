@@ -356,6 +356,9 @@ func (f *FeedServiceImpl) GetAuthor(user, id int) (Author models.VOUser) {
 	Author.Name = getuser.Name
 	Author.FollowCount = getuser.FollowCount
 	Author.FollowerCount = getuser.FollowerCount
+	Author.Avatar = getuser.Avatar
+	Author.Signature = getuser.Signature
+	Author.Background = getuser.BackGround
 	if user == 0 { //未登录用户，关注即为默认值未关注
 		Author.IsFollow = false
 	} else { //user-登录用户id getuser.id-视频作者id，前后关系!
