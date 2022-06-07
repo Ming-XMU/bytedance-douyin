@@ -2,6 +2,7 @@ package daos
 
 import (
 	"douyin/models"
+	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -13,6 +14,7 @@ var (
 
 type VideoDao interface {
 	FindById(id int64) (*models.Video, error)
+	UpdateVideCommentCount(videoId int64, add int64) error
 }
 
 type VideoDaoImpl struct {
@@ -36,4 +38,40 @@ func (v *VideoDaoImpl) FindById(id int64) (*models.Video, error) {
 		return nil, err
 	}
 	return &video, nil
+}
+
+// UpdateVideCommentCount
+// @Description: 更新视频的评论数量
+// @receiver v
+// @param id
+// @param add +1 | -1
+// @return error
+func (v *VideoDaoImpl) UpdateVideCommentCount(videoId int64, add int64) error {
+	var video models.Video
+	tx := v.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		return err
+	}
+	//锁住指定id的Video记录
+	err := tx.Set("gorm:query_option", "FOR UPDATE").Select("id", "comment_count").Where("id = ?", videoId).Take(&video).Error
+	if err != nil {
+		return err
+	}
+	fmt.Println(video)
+	// 更新CommentCount
+	video.CommentCount += add
+	err = tx.Model(&models.Video{}).Where("id = ?", video.ID).UpdateColumn("comment_count", video.CommentCount).Error
+	if err != nil {
+		return err
+	}
+	// 提交事务，释放锁
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+	return nil
 }
