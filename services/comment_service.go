@@ -24,6 +24,7 @@ func GetCommentService() CommentService {
 	commentServiceOnce.Do(func() {
 		commentService = &CommentServiceImpl{
 			commentDao: daos.GetCommentDao(),
+			videoDao:   daos.GetVideoDao(),
 		}
 	})
 	return commentService
@@ -37,6 +38,7 @@ type CommentService interface {
 
 type CommentServiceImpl struct {
 	commentDao daos.CommentDao
+	videoDao   daos.VideoDao
 }
 
 // CommentList 评论列表
@@ -60,13 +62,31 @@ func (f *CommentServiceImpl) CommentAction(userId, videoId, commentId int64, act
 		if err != nil {
 			logrus.Errorln("removeRedisCommentCountKey is false by ", videoId)
 		}
-		return f.commentDao.InsertComment(comment)
+		err = f.commentDao.InsertComment(comment)
+		if err != nil {
+			return err
+		}
+		var add int64 = 1
+		err = f.videoDao.UpdateVideCommentCount(videoId, add)
+		if err != nil {
+			return err
+		}
+		return nil
 	} else if action == 2 {
 		err := removeRedisCommentCountKey(videoId)
 		if err != nil {
 			logrus.Errorln("removeRedisCommentCountKry is false by ", videoId)
 		}
-		return f.commentDao.DeleteComment(int(commentId))
+		err = f.commentDao.DeleteComment(int(commentId))
+		if err != nil {
+			return err
+		}
+		var add int64 = -1
+		err = f.videoDao.UpdateVideCommentCount(videoId, add)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 	return errors.New("action is error")
 	//comment := &models.Comment{ //对应数据库的comment表
