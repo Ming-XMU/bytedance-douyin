@@ -6,14 +6,14 @@
 #### 软件架构
 
  **软件架构说明** ：
- **开发语言** ：go语言
- **持久化数据库** ：mysql
- **缓存数据库** ：redis
- **信息队列中间件** :rabbitmq
- **API框架** ：gin
- **操作mysql** ：gorm
- **操作redis** ：redigo
- **日志插件** ：logrus
+ 1. **开发语言** ：go语言
+ 2. **持久化数据库** ：mysql
+ 3. **缓存数据库** ：redis
+ 4. **信息队列中间件** :rabbitmq
+ 5. **API框架** ：gin
+ 6. **操作mysql** ：gorm
+ 7. **操作redis** ：redigo
+ 8. **日志插件** ：logrus
 
 #### 安装教程
 
