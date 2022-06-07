@@ -170,15 +170,23 @@ func (f *CommentServiceImpl) commentIdCdRedis() error {
 }
 
 func (f *CommentServiceImpl) GetCommentCount(videoId int64) int64 {
-	count, err := getRedisCommentCountKey(videoId)
+	//count, err := getRedisCommentCountKey(videoId)
+	//if err != nil {
+	//	c, e := addRedisCommentCountKey(videoId)
+	//	if e != nil {
+	//		fmt.Println("get redis comment count失败失败,", e.Error())
+	//		return 0
+	//	}
+	//	return c
+	//}
+	//return count
+	var video *models.Video
+	video, err := daos.GetVideoDao().FindById(videoId)
 	if err != nil {
-		c, e := addRedisCommentCountKey(videoId)
-		if e != nil {
-			return 0
-		}
-		return c
+		return 0
 	}
-	return count
+	return video.CommentCount
+
 	//// 先加载redis缓存
 	//err := f.commentCdRedis(videoId)
 	//if err != nil {
