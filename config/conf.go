@@ -126,8 +126,8 @@ func followQueueListen() {
 func favoriteQueueListen() {
 	rabbitMQSimple := mq.GetFavoriteMQ()
 	rabbitMQSimple.ConsumeSimple(func(msg string) error {
-		var fMsg *mq.FavoriteActionMsg
-		err := json.Unmarshal([]byte(msg), fMsg)
+		var fMsg mq.FavoriteActionMsg
+		err := json.Unmarshal([]byte(msg), &fMsg)
 		if err != nil {
 			return errors.New("favoriteQueueListen unmarshal failed")
 		}
