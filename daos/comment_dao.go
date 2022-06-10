@@ -16,7 +16,6 @@ type CommentDao interface {
 	InsertComment(comment *models.Comment) error
 	ListCommentById(videoId int) (comments []models.Comment, err error)
 	DeleteComment(commentId int) error
-	//GetcCommentIdNext() (num int64, err error)
 	GetCommentIdNext() (num int64, err error)
 	GetCommentByCommentId(commentId int) (*models.Comment, error)
 	GetCommentCountByVideoId(videoId int) (int64, error)
@@ -28,14 +27,14 @@ type CommentDaoImpl struct {
 
 func (c CommentDaoImpl) GetCommentCountByVideoId(videoId int) (int64, error) {
 	var count int64
-	if err := c.db.Debug().Where("video_id = ?", videoId).Count(&count).Error; err != nil {
+	if err := c.db.Where("video_id = ?", videoId).Count(&count).Error; err != nil {
 		return -1, err
 	}
 	return count, nil
 }
 
 func (c CommentDaoImpl) InsertComment(comment *models.Comment) error {
-	if err := c.db.Debug().Create(comment).Error; err != nil {
+	if err := c.db.Create(comment).Error; err != nil {
 		return err
 	}
 	return nil
@@ -43,7 +42,7 @@ func (c CommentDaoImpl) InsertComment(comment *models.Comment) error {
 
 func (c CommentDaoImpl) ListCommentById(videoId int) ([]models.Comment, error) {
 	var comments []models.Comment
-	err := c.db.Debug().Select("id", "user_id", "message", "create_at").
+	err := c.db.Select("id", "user_id", "message", "create_at").
 		Where("video_id = ?", videoId).Order("create_at desc").Find(&comments).Error
 	if err != nil {
 		return nil, err
@@ -53,7 +52,7 @@ func (c CommentDaoImpl) ListCommentById(videoId int) ([]models.Comment, error) {
 
 func (c CommentDaoImpl) DeleteComment(commentId int) error {
 	var comment models.Comment
-	err := c.db.Debug().Where("id = ?", commentId).Delete(&comment).Error
+	err := c.db.Where("id = ?", commentId).Delete(&comment).Error
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func (c CommentDaoImpl) GetcCommentIdNext() (num int64, err error) {
 		UserId:  0,
 		Message: "",
 	}
-	c.db.Debug().Create(comment)
+	c.db.Create(comment)
 	num = comment.ID
 	err = c.DeleteComment(int(num))
 	if err != nil {
@@ -93,7 +92,7 @@ func (c CommentDaoImpl) GetCommentIdNext() (int64, error) {
 	var res int64
 	table := "information_schema.TABLES"
 	fmt.Println(table)
-	err := c.db.Debug().Table(table).
+	err := c.db.Table(table).
 		Select("auto_increment").Where("table_name = 'comment'").Take(&res).Error
 	if err != nil {
 		return res, nil

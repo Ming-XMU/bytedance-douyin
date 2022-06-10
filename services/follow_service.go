@@ -311,15 +311,6 @@ func (f *FollowServiceImpl) FollowUpdate() {
 			continue
 		}
 	}
-	//改为写回数据无需删除
-	//err = tools.RedisDeleteKey(follow)
-	//if err != nil {
-	//	return
-	//}
-	//err = tools.RedisDeleteKey(follower)
-	//if err != nil {
-	//	return
-	//}
 	return
 }
 

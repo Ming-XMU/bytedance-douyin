@@ -45,7 +45,7 @@ func (f *FeedDaoImpl) FindVideoByPlayUrl(videoUrl string) (rowsAffected int64, e
 
 func (f *FeedDaoImpl) GetUserVideos(userId int64) (list []*models.Video, err error) {
 	var userVideos []*models.Video
-	err = f.db.Debug().Where("user_id", userId).Find(&userVideos).Error
+	err = f.db.Where("user_id", userId).Find(&userVideos).Error
 	list = userVideos
 	return
 }
@@ -55,7 +55,7 @@ func (f *FeedDaoImpl) GetVideosByCreateAt(timestamp int64) (LastVideo []models.V
 	// 格式化时间
 	// 测试发现接口传过来的时间戳是毫秒
 	cur := time.UnixMilli(timestamp).Format(timeLayout)
-	err = f.db.Debug().Limit(30).Where("create_at<=?", cur).Find(&LastVideo).Error
+	err = f.db.Limit(30).Where("create_at<=?", cur).Find(&LastVideo).Error
 	return LastVideo, err
 }
 

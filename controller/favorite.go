@@ -50,6 +50,15 @@ func FavoriteAction(c *gin.Context) {
 
 // FavoriteList all users have same favorite video list
 func FavoriteList(c *gin.Context) {
+	//token验证
+	_, err := tools.VeifyToken(c.Query("token"))
+	if err != nil {
+		c.JSON(http.StatusOK, UserResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "请先登录"},
+		})
+		return
+	}
+	//参数获取
 	userId := c.Query("user_id")
 	//get user favourite video
 	uId, err := strconv.ParseInt(userId, 10, 64)

@@ -30,7 +30,7 @@ func GetVideoDao() VideoDao {
 
 func (v *VideoDaoImpl) FindById(id int64) (*models.Video, error) {
 	var video models.Video
-	err := v.db.Debug().Select("id", "user_id", "play_url", "cover_url", "comment_count", "favorite_count", "title").
+	err := v.db.Select("id", "user_id", "play_url", "cover_url", "comment_count", "favorite_count", "title").
 		Where("id = ?", id).Take(&video).Error
 	if err != nil {
 		return nil, err

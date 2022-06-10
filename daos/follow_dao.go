@@ -43,7 +43,7 @@ func GetFollowDao() FollowDao {
 // JudgeIsFollow 判断是否有关注
 func (f *FollowDaoImpl) JudgeIsFollow(followId, followerId int) (is bool, err error) {
 	var exist models.Follow
-	err = f.db.Debug().Where("follow_id=?&&follower_id=?", followId, followerId).Take(&exist).Error
+	err = f.db.Where("follow_id=?&&follower_id=?", followId, followerId).Take(&exist).Error
 	if exist.FollowId == 0 {
 		return false, err
 	}
@@ -57,7 +57,7 @@ func (f *FollowDaoImpl) JudgeIsFollow(followId, followerId int) (is bool, err er
 // @param follow
 // @return error
 func (f *FollowDaoImpl) AddFollow(follow *models.Follow) error {
-	return f.db.Debug().Create(follow).Error
+	return f.db.Create(follow).Error
 }
 
 // DelFollow
@@ -67,7 +67,7 @@ func (f *FollowDaoImpl) AddFollow(follow *models.Follow) error {
 // @param follow
 // @return error
 func (f *FollowDaoImpl) DelFollow(follow *models.Follow) error {
-	return f.db.Debug().Where("follow_id = ? && follower_id = ?", follow.FollowId, follow.FollowerId).Delete(&models.Follow{}).Error
+	return f.db.Where("follow_id = ? && follower_id = ?", follow.FollowId, follow.FollowerId).Delete(&models.Follow{}).Error
 }
 
 // FindFollow
@@ -88,7 +88,7 @@ func (f *FollowDaoImpl) FindFollow(followId string, followerId string) (*models.
 
 func (f *FollowDaoImpl) UserFollow(userId int) ([]int, error) {
 	var res []int
-	err := f.db.Debug().Table("follow").Select("follow_id").Where("follower_id = ?", userId).Find(&res).Error
+	err := f.db.Table("follow").Select("follow_id").Where("follower_id = ?", userId).Find(&res).Error
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (f *FollowDaoImpl) UserFollow(userId int) ([]int, error) {
 
 func (f *FollowDaoImpl) UserFollower(userId int) ([]int, error) {
 	var res []int
-	err := f.db.Debug().Table("follow").Select("follower_id").Where("follow_id = ?", userId).Find(&res).Error
+	err := f.db.Table("follow").Select("follower_id").Where("follow_id = ?", userId).Find(&res).Error
 	if err != nil {
 		return nil, err
 	}

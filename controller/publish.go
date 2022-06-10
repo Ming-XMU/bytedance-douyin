@@ -3,6 +3,7 @@ package controller
 import (
 	"douyin/models"
 	"douyin/services"
+	"douyin/tools"
 	"github.com/anqiansong/ketty/console"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -36,6 +37,15 @@ func Publish(c *gin.Context) {
 
 // PublishList all users have same public video list
 func PublishList(c *gin.Context) {
+	//token验证
+	_, err := tools.VeifyToken(c.Query("token"))
+	if err != nil {
+		c.JSON(http.StatusOK, UserResponse{
+			Response: Response{StatusCode: 1, StatusMsg: "请先登录"},
+		})
+		return
+	}
+	//获取参数
 	userId := c.Query("user_id")
 	parseInt, err := strconv.ParseInt(userId, 10, 64)
 	if err != nil {

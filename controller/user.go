@@ -145,7 +145,7 @@ func UserInfo(c *gin.Context) {
 	//调用service进行查询
 	if user, err := services.GetUserService().UserInfo(id); err != nil {
 		c.JSON(http.StatusOK, UserResponse{
-			Response: Response{StatusCode: 1, StatusMsg: err.Error()},
+			Response: Response{StatusCode: 1, StatusMsg: "用户不存在"},
 		})
 	} else {
 		c.JSON(http.StatusOK, UserResponse{

@@ -49,7 +49,7 @@ func (u *UserDaoImpl) AddUser(user *models.User) error {
 // UpdateUser 更新用户
 // 参数 user User结构体指针
 func (u *UserDaoImpl) UpdateUser(user *models.User) error {
-	if err := u.db.Debug().Updates(user).Error; err != nil {
+	if err := u.db.Updates(user).Error; err != nil {
 		return err
 	}
 	return nil
@@ -81,7 +81,7 @@ func (u *UserDaoImpl) LastId() int64 {
 //根据id查询对应的user
 func (u *UserDaoImpl) FindById(id int) (*models.User, error) {
 	var user models.User
-	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count", "avatar", "signature", "background_image").
+	err := u.db.Select("id", "name", "follow_count", "follower_count", "avatar", "signature", "background_image").
 		Where("id = ?", id).Take(&user).Error
 	fmt.Println(user)
 	if err != nil {
@@ -95,7 +95,7 @@ func (u *UserDaoImpl) FindListByIds(ids []int) ([]models.User, error) {
 	if len(ids) == 0 {
 		return res, nil
 	}
-	err := u.db.Debug().Select("id", "name", "follow_count", "follower_count", "avatar", "signature", "background_image").
+	err := u.db.Select("id", "name", "follow_count", "follower_count", "avatar", "signature", "background_image").
 		Where("id IN ?", ids).Find(&res).Error
 	if err != nil {
 		return nil, err
